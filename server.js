@@ -1,20 +1,20 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const axios = require("axios");
 const path = require("path");
+const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// اتصال به MongoDB
+// اتصال به دیتابیس MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// مدل کاربر
+// مدل‌ها
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -22,7 +22,6 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
-// مدل کاربر موقت برای تأیید از طریق تلگرام
 const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
   name: String,
   phone: String,
@@ -32,20 +31,18 @@ const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// سرو فایل‌های استاتیک (مثلاً index.html)
 app.use(express.static(path.join(__dirname, "public")));
 
-// ارسال اطلاعات به تلگرام برای تأیید
+// ثبت‌نام: ارسال به تلگرام و ذخیره در pending
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
-  const token = process.env.BOT_TOKEN;
-  const chatId = process.env.ADMIN_CHAT_ID;
-
-  // ذخیره موقت اطلاعات در PendingUser
   try {
-    const pendingUser = await PendingUser.create({ name, phone, username, password });
+    await PendingUser.create({ name, phone, username, password });
+
+    const token = process.env.BOT_TOKEN;
+    const chatId = process.env.ADMIN_CHAT_ID;
+    const approveUrl = `${process.env.SERVER_URL}/api/approve?phone=${encodeURIComponent(phone)}`;
 
     const message = `
 👤 درخواست ثبت‌نام جدید:
@@ -53,11 +50,9 @@ app.post("/api/register-request", async (req, res) => {
 📱 شماره: ${phone}
 👤 نام کاربری: ${username}
 
-برای تأیید، روی دکمه زیر کلیک کنید:
+برای تأیید روی دکمه زیر کلیک کنید:
     `;
-    const approveUrl = `${process.env.SERVER_URL}/api/approve?phone=${encodeURIComponent(phone)}`;
 
-    // ارسال پیام به تلگرام برای تأیید
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
       chat_id: chatId,
       text: message,
@@ -68,57 +63,59 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
-    res.json({ message: "درخواست ثبت‌نام ارسال شد، منتظر تأیید ادمین باشید." });
+    // بعد از ارسال به تلگرام، کاربر به صفحه pending هدایت شود
+    res.redirect(`/pending.html?phone=${encodeURIComponent(phone)}`);
   } catch (err) {
-    console.error("Error in /api/register-request:", err);
-    res.status(500).json({ message: "خطا در ارسال به تلگرام" });
+    console.error("خطا در ارسال:", err);
+    res.status(500).send("خطا در ارسال اطلاعات ثبت‌نام");
   }
 });
 
-// مسیر تأیید که ادمین از طریق دکمه می‌زنه
+// بررسی تأیید شدن توسط ادمین (برای pending.html)
+app.get("/api/check-status", async (req, res) => {
+  const { phone } = req.query;
+  try {
+    const user = await User.findOne({ phone });
+    res.json({ approved: !!user });
+  } catch (err) {
+    console.error("خطا در بررسی وضعیت:", err);
+    res.status(500).json({ approved: false });
+  }
+});
+
+// مسیر تأیید توسط ادمین از تلگرام
 app.get("/api/approve", async (req, res) => {
   const { phone } = req.query;
 
   try {
-    // پیدا کردن اطلاعات موقت کاربر
-    const pendingUser = await PendingUser.findOne({ phone });
-    if (!pendingUser) {
-      console.log(`No pending user found with phone: ${phone}`);
-      return res.send("❌ اطلاعات موقت پیدا نشد.");
-    }
+    const pending = await PendingUser.findOne({ phone });
+    if (!pending) return res.send("❌ اطلاعات موقت یافت نشد.");
 
-    // چک کردن اینکه کاربر قبلاً ثبت شده باشد
-    const existing = await User.findOne({ phone });
-    if (existing) {
-      console.log(`User with phone: ${phone} already exists.`);
-      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
-    }
+    const exists = await User.findOne({ phone });
+    if (exists) return res.send("⚠️ کاربر قبلاً ثبت‌نام کرده است.");
 
-    // ثبت کاربر در دیتابیس اصلی
-    const newUser = await User.create({
-      name: pendingUser.name,
-      phone: pendingUser.phone,
-      username: pendingUser.username,
-      password: pendingUser.password,
+    await User.create({
+      name: pending.name,
+      phone: pending.phone,
+      username: pending.username,
+      password: pending.password,
     });
 
-    console.log(`User created: ${newUser}`);
-
-    // حذف اطلاعات موقت
     await PendingUser.deleteOne({ phone });
 
-res.redirect("/login.html?approved=true");
+    // ریدایرکت به login با پیام
+    res.redirect("/login.html?message=approved");
   } catch (err) {
-    console.error("Error in /api/approve:", err);
-    res.status(500).send("❌ خطا در ثبت کاربر.");
+    console.error("خطا در تأیید کاربر:", err);
+    res.status(500).send("❌ خطا در تأیید.");
   }
 });
 
-// fallback برای مسیرهای ناشناس (در صورت SPA نبودن لازم نیست)
+// fallback برای SPA یا فایل‌های ناشناس
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
