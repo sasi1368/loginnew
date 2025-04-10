@@ -1,20 +1,20 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const path = require("path");
 const axios = require("axios");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// اتصال به دیتابیس MongoDB
+// اتصال به دیتابیس
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// مدل‌ها
+// مدل‌های دیتابیس
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -29,15 +29,19 @@ const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
   password: String,
 }));
 
+// تنظیمات میانی
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// فایل‌های استاتیک
 app.use(express.static(path.join(__dirname, "public")));
 
-// ثبت‌نام: ارسال به تلگرام و ذخیره در pending
+// درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
   try {
+    // ذخیره کاربر در لیست انتظار
     await PendingUser.create({ name, phone, username, password });
 
     const token = process.env.BOT_TOKEN;
@@ -50,72 +54,66 @@ app.post("/api/register-request", async (req, res) => {
 📱 شماره: ${phone}
 👤 نام کاربری: ${username}
 
-برای تأیید روی دکمه زیر کلیک کنید:
-    `;
+✅ برای تأیید، روی دکمه زیر کلیک کنید.
+`;
 
-    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+    // ارسال به تلگرام
+    const telegramRes = await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
       chat_id: chatId,
       text: message,
       reply_markup: {
         inline_keyboard: [
-          [{ text: "✅ تأیید ثبت‌نام", url: approveUrl }],
-        ],
-      },
+          [{ text: "✅ تأیید ثبت‌نام", url: approveUrl }]
+        ]
+      }
     });
 
-    // بعد از ارسال به تلگرام، کاربر به صفحه pending هدایت شود
-    res.redirect(`/pending.html?phone=${encodeURIComponent(phone)}`);
+    // بررسی موفقیت ارسال پیام
+    if (telegramRes.data.ok) {
+      res.redirect(`/pending.html?phone=${phone}`);
+    } else {
+      console.error("پاسخ تلگرام:", telegramRes.data);
+      res.status(500).send("خطا در ارسال پیام تلگرام");
+    }
   } catch (err) {
-    console.error("خطا در ارسال:", err);
-    res.status(500).send("خطا در ارسال اطلاعات ثبت‌نام");
+    console.error("خطا:", err.message);
+    res.status(500).send("ارسال اطلاعات با خطا مواجه شد.");
   }
 });
 
-// بررسی تأیید شدن توسط ادمین (برای pending.html)
-app.get("/api/check-status", async (req, res) => {
-  const { phone } = req.query;
-  try {
-    const user = await User.findOne({ phone });
-    res.json({ approved: !!user });
-  } catch (err) {
-    console.error("خطا در بررسی وضعیت:", err);
-    res.status(500).json({ approved: false });
-  }
-});
-
-// مسیر تأیید توسط ادمین از تلگرام
+// مسیر تأیید از طرف ادمین
 app.get("/api/approve", async (req, res) => {
   const { phone } = req.query;
 
   try {
-    const pending = await PendingUser.findOne({ phone });
-    if (!pending) return res.send("❌ اطلاعات موقت یافت نشد.");
+    const pendingUser = await PendingUser.findOne({ phone });
+    if (!pendingUser) return res.send("❌ کاربر در لیست انتظار یافت نشد.");
 
     const exists = await User.findOne({ phone });
-    if (exists) return res.send("⚠️ کاربر قبلاً ثبت‌نام کرده است.");
+    if (exists) return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
 
     await User.create({
-      name: pending.name,
-      phone: pending.phone,
-      username: pending.username,
-      password: pending.password,
+      name: pendingUser.name,
+      phone: pendingUser.phone,
+      username: pendingUser.username,
+      password: pendingUser.password,
     });
 
     await PendingUser.deleteOne({ phone });
 
-    // ریدایرکت به login با پیام
-    res.redirect("/login.html?message=approved");
+    // بعد از تأیید، ریدایرکت به لاگین با پیام
+    res.redirect(`/login.html?status=approved`);
   } catch (err) {
-    console.error("خطا در تأیید کاربر:", err);
-    res.status(500).send("❌ خطا در تأیید.");
+    console.error("خطا در تأیید:", err.message);
+    res.status(500).send("❌ خطا در تأیید کاربر.");
   }
 });
 
-// fallback برای SPA یا فایل‌های ناشناس
+// fallback برای SPA
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
