@@ -13,30 +13,7 @@
       box-sizing: border-box;
       font-family: 'Vazirmatn', sans-serif;
     }
-<script>
-  function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-  }
 
-  // نمایش پیام تأیید اگر approved=true در URL باشد
-  const urlParams = new URLSearchParams(window.location.search);
-  const approved = urlParams.get("approved");
-
-  if (approved === "true") {
-    const message = document.createElement("div");
-    message.textContent = "✅ حساب شما با موفقیت تأیید شد. اکنون می‌توانید وارد شوید.";
-    message.style.backgroundColor = "#d1fae5";
-    message.style.color = "#065f46";
-    message.style.padding = "12px";
-    message.style.borderRadius = "10px";
-    message.style.marginBottom = "20px";
-    message.style.textAlign = "center";
-    message.style.fontWeight = "bold";
-
-    const container = document.querySelector(".login-container");
-    container.insertBefore(message, container.firstChild);
-  }
-</script>
 
     body {
       background: url('https://imgur.com/a/dFYCwF5') no-repeat center center/cover;
