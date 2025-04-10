@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>فرم ثبت‌نام کامل</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to bottom right, #dbeafe, #ddd6fe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .form-container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .form-container h2 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 25px;
+      font-size: 24px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #374151;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      transition: 0.3s;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    button {
+      width: 100%;
+      background-color: #3b82f6;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+
+    .error {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .login-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>فرم ثبت‌نام</h2>
+    <form id="signup-form">
+      <label for="name">نام کامل</label>
+      <input type="text" id="name" name="name" placeholder="مثلاً علی رضایی" required />
+
+      <label for="phone">شماره تماس</label>
+      <input type="tel" id="phone" name="phone" placeholder="مثلاً 09123456789" required />
+
+      <label for="username">نام کاربری</label>
+      <input type="text" id="username" name="username" placeholder="مثلاً ali_rz" required />
+
+      <label for="password">رمز عبور</label>
+      <input type="password" id="password" name="password" placeholder="رمز دلخواه خود را وارد کنید" required />
+
+      <label for="confirm-password">تکرار رمز عبور</label>
+      <input type="password" id="confirm-password" name="confirm-password" placeholder="رمز را دوباره وارد کنید" required />
+
+      <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
+
+      <button type="submit">ثبت‌نام</button>
+
+      <div class="login-link">
+        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+        <a href="login.html">وارد شوید</a>
+      </div>
+    </form>
+  </div>
+
+ <script>
+  const form = document.getElementById("signup-form");
+  const password = document.getElementById("password");
+  const confirmPassword = document.getElementById("confirm-password");
+  const errorText = document.getElementById("password-error");
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    if (password.value !== confirmPassword.value) {
+      errorText.style.display = "block";
+      confirmPassword.focus();
+      return;
+    }
+
+    errorText.style.display = "none";
+
+    const formData = {
+      name: document.getElementById("name").value,
+      phone: document.getElementById("phone").value,
+      username: document.getElementById("username").value,
+      password: password.value,
+    };
+
+    try {
+      const res = await fetch("http://localhost:3000/api/register-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    } catch (err) {
+      alert("ارسال اطلاعات با خطا مواجه شد");
+    }
+  });
+
+  function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+  }
+</script>
+
+</body>
+</html>
