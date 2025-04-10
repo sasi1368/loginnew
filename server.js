@@ -107,7 +107,7 @@ app.get("/api/approve", async (req, res) => {
     // حذف اطلاعات موقت
     await PendingUser.deleteOne({ phone });
 
-res.sendFile(path.join(__dirname, "public", "approved.html"));
+res.redirect("/login.html?approved=true");
   } catch (err) {
     console.error("Error in /api/approve:", err);
     res.status(500).send("❌ خطا در ثبت کاربر.");
