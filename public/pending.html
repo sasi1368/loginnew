@@ -1,51 +1,54 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>در حال بررسی...</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>در حال بررسی</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
     * {
-      font-family: 'Vazirmatn', sans-serif;
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      font-family: 'Vazirmatn', sans-serif;
     }
 
     body {
-      background: linear-gradient(to top right, #f0f4ff, #dbeafe);
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: white;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      text-align: center;
       padding: 20px;
+      text-align: center;
     }
 
-    .box {
-      background-color: #ffffff;
+    .pending-container {
+      background-color: rgba(255, 255, 255, 0.1);
       padding: 30px;
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      max-width: 400px;
+      max-width: 500px;
       width: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
     }
 
     h1 {
-      color: #1e40af;
+      font-size: 26px;
       margin-bottom: 20px;
     }
 
     p {
-      color: #374151;
-      line-height: 1.8;
-      font-size: 16px;
+      font-size: 18px;
+      line-height: 1.7;
     }
 
     .loader {
-      margin: 30px auto 0;
-      border: 6px solid #e0e7ff;
-      border-top: 6px solid #1e40af;
+      margin: 20px auto;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-top: 5px solid #fff;
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -59,13 +62,32 @@
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>در حال بررسی اطلاعات</h1>
-    <p>
-      اطلاعات شما برای تأیید به مدیر ارسال شده است. لطفاً این صفحه را نبندید.<br>
-      پس از تأیید، می‌توانید وارد حساب کاربری شوید.
-    </p>
+  <div class="pending-container">
+    <h1>در حال بررسی اطلاعات شما</h1>
     <div class="loader"></div>
+    <p>اطلاعات ثبت‌نام شما برای بررسی به ادمین ارسال شده است.<br>لطفاً این صفحه را نبندید. به محض تأیید، به صورت خودکار به صفحه ورود منتقل خواهید شد.</p>
   </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const phone = urlParams.get("phone");
+
+    if (phone) {
+      // بررسی هر 5 ثانیه برای تایید شدن کاربر
+      setInterval(async () => {
+        try {
+          const res = await fetch(`/api/check-status?phone=${encodeURIComponent(phone)}`);
+          const data = await res.json();
+          if (data.approved) {
+            window.location.href = "/login.html?message=approved";
+          }
+        } catch (err) {
+          console.error("خطا در بررسی وضعیت:", err);
+        }
+      }, 5000);
+    } else {
+      alert("شماره تلفن پیدا نشد.");
+    }
+  </script>
 </body>
 </html>
