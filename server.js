@@ -8,11 +8,13 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// اتصال به MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
+// مدل کاربر
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -20,12 +22,12 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
+// میدلورها
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// سرو فایل‌های استاتیک (مثلاً index.html)
 app.use(express.static(path.join(__dirname, "public")));
 
+// 📩 API درخواست ثبت‌نام
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
@@ -61,6 +63,7 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
+// ✅ API تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
@@ -77,11 +80,28 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// fallback برای مسیرهای ناشناس (در صورت SPA نبودن لازم نیست)
+// ✅ API ورود (login)
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.status(401).json({ message: "نام کاربری یا رمز عبور اشتباه است" });
+    }
+
+    res.json({ success: true, name: user.name });
+  } catch (err) {
+    res.status(500).json({ message: "خطا در ورود به سیستم" });
+  }
+});
+
+// fallback (SPA)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// اجرای سرور
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
