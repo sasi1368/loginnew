@@ -17,9 +17,9 @@ mongoose.connect(process.env.MONGO_URI, {
 // مدل کاربر
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
-  phone: String,
-  username: String,
-  password: String,
+  phone: { type: String, unique: true, required: true },
+  username: { type: String, required: true },
+  password: { type: String, required: true },
 }));
 
 // مدل بیمار
@@ -40,21 +40,29 @@ app.use(express.static(path.join(__dirname, "public")));
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
 
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: "نام کاربری و رمز عبور الزامی است." });
+  }
+
   try {
     const user = await User.findOne({ username, password });
     if (!user) {
-      return res.json({ success: false });
+      return res.json({ success: false, message: "نام کاربری یا رمز عبور نادرست است." });
     }
     res.json({ success: true, name: user.name });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "خطا در فرآیند لاگین." });
   }
 });
 
 // ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
+
+  if (!name || !phone || !username || !password) {
+    return res.status(400).json({ message: "تمام فیلدها الزامی هستند." });
+  }
 
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
@@ -92,13 +100,29 @@ app.post("/api/register-request", async (req, res) => {
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
+  if (!name || !phone || !username || !password) {
+    return res.status(400).send("تمام فیلدها الزامی هستند.");
+  }
+
   try {
+    // ابتدا چک کنید که کاربر در PendingUser باشد
+    const pendingUser = await PendingUser.findOne({ phone });
+    if (!pendingUser) {
+      return res.send("⚠️ این کاربر در حالت انتظار نیست.");
+    }
+
+    // چک کنید که کاربر قبلاً در سیستم ثبت نشده باشد
     const exists = await User.findOne({ phone });
     if (exists) {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
+    // ثبت کاربر جدید
     await User.create({ name, phone, username, password });
+
+    // حذف کاربر از PendingUser
+    await PendingUser.deleteOne({ phone });
+
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
@@ -111,7 +135,7 @@ app.post("/api/patients", async (req, res) => {
   const { name, phone, code } = req.body;
 
   if (!name || !phone || !code) {
-    return res.json({ success: false, message: "اطلاعات ناقص است." });
+    return res.status(400).json({ success: false, message: "اطلاعات ناقص است." });
   }
 
   try {
@@ -119,7 +143,7 @@ app.post("/api/patients", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.json({ success: false, message: "خطا در ذخیره بیمار." });
+    res.status(500).json({ success: false, message: "خطا در ذخیره بیمار." });
   }
 });
 
