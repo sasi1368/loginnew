@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
-const { v4: uuidv4 } = require("uuid"); // استفاده از uuid برای تولید کد یکتا
 require("dotenv").config();
 
 const app = express();
@@ -20,18 +19,16 @@ mongoose.connect(process.env.MONGO_URI, {
 // مدل کاربر
 const UserSchema = new mongoose.Schema({
   name: String,
-  phone: { type: String, unique: true },
+  phone: { type: String }, // حذف unique
   username: String,
   password: String,
-  uniqueCode: { type: String, unique: true }, // کد یکتای اختصاصی
 });
 
 const PendingUserSchema = new mongoose.Schema({
   name: String,
-  phone: { type: String, unique: true },
+  phone: { type: String }, // حذف unique
   username: String,
   password: String,
-  uniqueCode: { type: String, unique: true }, // کد یکتای اختصاصی
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -67,12 +64,9 @@ app.post("/api/register-request", async (req, res) => {
     return res.status(400).json({ message: "لطفاً همه فیلدها را پر کنید" });
   }
 
-  // تولید کد یکتای اختصاصی
-  const uniqueCode = uuidv4();
-
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&uniqueCode=${uniqueCode}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   const message = `
     👤 درخواست ثبت‌نام جدید:
@@ -85,7 +79,7 @@ app.post("/api/register-request", async (req, res) => {
 
   try {
     // ثبت‌نام در PendingUser
-    await PendingUser.create({ name, phone, username, password, uniqueCode });
+    await PendingUser.create({ name, phone, username, password });
 
     // ارسال پیام به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -107,7 +101,7 @@ app.post("/api/register-request", async (req, res) => {
 
 // تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
-  const { name, phone, username, password, uniqueCode } = req.query;
+  const { name, phone, username, password } = req.query;
 
   try {
     const exists = await User.findOne({ phone });
@@ -117,8 +111,7 @@ app.get("/api/approve", async (req, res) => {
 
     // انتقال از PendingUser به User
     await PendingUser.deleteOne({ phone });
-    await User.create({ name, phone, username, password, uniqueCode }); // ذخیره کد اختصاصی در دیتابیس
-
+    await User.create({ name, phone, username, password });
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
