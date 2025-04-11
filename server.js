@@ -8,6 +8,7 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// اتصال به دیتابیس MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -69,14 +70,16 @@ app.get("/api/approve", async (req, res) => {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
+    // ثبت کاربر جدید در دیتابیس
     await User.create({ name, phone, username, password });
-    res.redirect(`${process.env.CLIENT_URL}/?status=approved`); // ریدایرکت به صفحه تایید در سایت
+    // ریدایرکت به صفحه تایید در سایت
+    res.redirect(`${process.env.CLIENT_URL}/?status=approved`);
   } catch (err) {
     res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
-// fallback برای مسیرهای ناشناس (در صورت SPA نبودن لازم نیست)
+// fallback برای مسیرهای ناشناس
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
