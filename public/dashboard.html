@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>داشبورد کاربر</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Vazirmatn', sans-serif;
+      background-image: url('images/1.png');
+      background-size: cover;
+      background-position: center;
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      margin: 40px auto;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      margin-top: 5px;
+    }
+
+    button {
+      width: 100%;
+      background-color: #3b82f6;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .qrcode {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .stats {
+      text-align: center;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <h2 id="welcome">خوش آمدی!</h2>
+
+    <label for="patientName">نام بیمار:</label>
+    <input type="text" id="patientName" placeholder="مثلاً علی رضایی" required />
+
+    <label for="patientPhone">شماره تماس:</label>
+    <input type="tel" id="patientPhone" placeholder="مثلاً 09123456789" required />
+
+    <button onclick="submitPatient()">ثبت بیمار</button>
+
+    <div class="qrcode" id="qrcode"></div>
+
+    <div class="stats">
+      <span id="realVisits">تعداد مراجعه به مرکز تصویربرداری ۰</span>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const userName = localStorage.getItem("username") || "کاربر";
+    document.getElementById("welcome").innerText = `خوش آمدی ${userName}`;
+
+    async function submitPatient() {
+      const name = document.getElementById("patientName").value;
+      const phone = document.getElementById("patientPhone").value;
+
+      if (!name || !phone) {
+        alert("لطفاً نام و شماره را وارد کنید.");
+        return;
+      }
+
+      const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      try {
+        const res = await fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, code }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("qrcode").innerHTML = "";
+          new QRCode(document.getElementById("qrcode"), code);
+          updateStats();
+        } else {
+          alert(data.message || "خطا در ثبت");
+        }
+      } catch (err) {
+        alert("خطا در اتصال به سرور");
+      }
+    }
+
+    async function updateStats() {
+      try {
+        const res = await fetch("/api/patients/stats");
+        const data = await res.json();
+        document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی به مرکز تصویربرداری: ${data.visited}`;
+      } catch (err) {
+        console.error("خطا در دریافت آمار");
+      }
+    }
+
+    updateStats();
+  </script>
+</body>
+</html>
