@@ -2,112 +2,205 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>ورود کاربر</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ورود به سامانه</title>
   <style>
-    body {
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
       font-family: 'Vazirmatn', sans-serif;
-      background-image: url('images/1.png');
-      background-size: cover;
-      background-position: center;
+    }
+
+    body {
+      background: url('https://imgur.com/a/dFYCwF5') no-repeat center center/cover;
       min-height: 100vh;
-      color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 20px;
+      background-color: transparent;
+      color: var(--text-color, #000000);
     }
+
+body {
+  background: url('images/1.png') no-repeat center center/cover;
+}
+
 
     .login-container {
-      background-color: rgba(0, 0, 0, 0.6);
-      padding: 30px;
-      border-radius: 16px;
+      background-color: rgba(255, 255, 255, 0.75);
+      padding: 30px 25px;
+      border-radius: 20px;
       max-width: 400px;
       width: 100%;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
 
-    h2 {
+    .login-container h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
+      font-size: 24px;
+      color: var(--text-color, #1f2937);
     }
 
     label {
       display: block;
-      margin-top: 15px;
+      margin-bottom: 6px;
+      color: var(--label-color, #374151);
+      font-weight: bold;
     }
 
-    input {
+    input[type="text"],
+    input[type="password"] {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
+      border: 1px solid #d1d5db;
       border-radius: 10px;
-      border: none;
-      margin-top: 5px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      transition: border-color 0.3s;
     }
 
-    button {
+    input:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    button[type="submit"] {
       width: 100%;
-      background-color: #10b981;
+      background-color: #3b82f6;
       color: white;
       padding: 12px;
       border: none;
       border-radius: 10px;
-      margin-top: 20px;
-      cursor: pointer;
       font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
     }
 
-    .error-message {
-      color: #f87171;
+    button[type="submit"]:hover {
+      background-color: #2563eb;
+    }
+
+    .signup-link {
       text-align: center;
       margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .signup-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .signup-link a:hover {
+      text-decoration: underline;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .checkbox-remember {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .checkbox-remember input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-left: 5px;
+    }
+
+    .dark-mode-btn {
+      width: auto;
+      height: 28px;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: var(--text-color, #000000);
+    }
+
+    body.dark-mode {
+      --background-color: transparent;
+      --text-color: #ffffff;
+      --label-color: #e5e5e5;
+    }
+
+    .dark-mode .login-container {
+      background-color: rgba(30, 30, 30, 0.75);
+    }
+
+    .dark-mode input {
+      background-color: #333;
+      color: #fff;
+      border-color: #444;
+    }
+
+    .dark-mode button[type="submit"] {
+      background-color: #4c6ef5;
+    }
+
+    .dark-mode button[type="submit"]:hover {
+      background-color: #3a55d4;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 20px;
+      }
+
+      input, button {
+        font-size: 14px;
+      }
+
+      .dark-mode-btn {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="login-container">
     <h2>ورود به سامانه</h2>
-    <form onsubmit="return handleLogin(event)">
-      <label for="username">نام کاربری:</label>
-      <input type="text" id="username" required />
+    <form>
+      <label for="username">نام کاربری</label>
+      <input type="text" id="username" name="username" placeholder="نام کاربری خود را وارد کنید" required>
 
-      <label for="password">رمز عبور:</label>
-      <input type="password" id="password" required />
+      <label for="password">رمز عبور</label>
+      <input type="password" id="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+
+      <div class="checkbox-container">
+        <div class="checkbox-remember">
+          <input type="checkbox" id="rememberMe">
+          <label for="rememberMe">مرا به خاطر بسپار</label>
+        </div>
+        <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+      </div>
 
       <button type="submit">ورود</button>
-    </form>
 
-    <div class="error-message" id="errorMessage"></div>
+      <div class="signup-link">
+        <span>ثبت‌نام نکرده‌اید؟</span>
+        <a href="index.html">ثبت‌نام کنید</a>
+      </div>
+    </form>
   </div>
 
   <script>
-    async function handleLogin(event) {
-      event.preventDefault();
-
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const errorMessage = document.getElementById("errorMessage");
-      errorMessage.textContent = "";
-
-      try {
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          localStorage.setItem("name", data.name);
-          localStorage.setItem("username", username);
-          window.location.href = "/dashboard.html";
-        } else {
-          errorMessage.textContent = "نام کاربری یا رمز عبور اشتباه است.";
-        }
-      } catch (err) {
-        errorMessage.textContent = "خطا در برقراری ارتباط با سرور.";
-      }
-
-      return false;
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
     }
   </script>
 </body>
