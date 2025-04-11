@@ -8,7 +8,6 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// اتصال به دیتابیس MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -24,7 +23,9 @@ const User = mongoose.model("User", new mongoose.Schema({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// ارسال درخواست ثبت‌نام به تلگرام
+// سرو فایل‌های استاتیک (مثلاً index.html)
+app.use(express.static(path.join(__dirname, "public")));
+
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
@@ -60,7 +61,6 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
-// تایید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
@@ -70,16 +70,14 @@ app.get("/api/approve", async (req, res) => {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // ثبت کاربر جدید در دیتابیس
     await User.create({ name, phone, username, password });
-    // ریدایرکت به صفحه تایید در سایت
-    res.redirect(`${process.env.CLIENT_URL}/?status=approved`);
+    res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
-// fallback برای مسیرهای ناشناس
+// fallback برای مسیرهای ناشناس (در صورت SPA نبودن لازم نیست)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
