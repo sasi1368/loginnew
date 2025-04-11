@@ -102,7 +102,7 @@
       margin-top: 15px;
       font-size: 14px;
       position: relative;
-      z-index: 1; /* برای بالاتر بودن لینک */
+      z-index: 1; /* لینک بالاتر از دکمه باشد */
     }
 
     .login-link a {
@@ -119,16 +119,16 @@
     /* دکمه ماه شکل کوچک */
     .dark-mode-toggle {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      bottom: 10px; /* دکمه پایین فرم */
+      right: 50%;
+      transform: translateX(50%);
       background: none;
       border: none;
       font-size: 24px;
       color: #fff;
       cursor: pointer;
       transition: color 0.3s;
-      z-index: 0; /* دکمه پشت لینک باشد */
+      z-index: 0; /* دکمه پشت لینک وارد شوید */
     }
 
     body.dark-mode .dark-mode-toggle {
