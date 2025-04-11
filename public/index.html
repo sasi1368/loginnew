@@ -30,10 +30,10 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
+      text-align: center;
     }
 
     .form-container h2 {
-      text-align: center;
       color: #1f2937;
       margin-bottom: 25px;
       font-size: 24px;
@@ -44,6 +44,7 @@
       margin-bottom: 6px;
       color: #374151;
       font-weight: bold;
+      text-align: right;
     }
 
     input {
@@ -101,10 +102,16 @@
     .login-link a:hover {
       text-decoration: underline;
     }
+
+    #waiting-box {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
-  <div class="form-container">
+  <div class="form-container" id="form-container">
     <h2>فرم ثبت‌نام</h2>
     <form id="signup-form">
       <label for="name">نام کامل</label>
@@ -133,48 +140,68 @@
     </form>
   </div>
 
- <script>
-  const form = document.getElementById("signup-form");
-  const password = document.getElementById("password");
-  const confirmPassword = document.getElementById("confirm-password");
-  const errorText = document.getElementById("password-error");
+  <script>
+    const form = document.getElementById("signup-form");
+    const password = document.getElementById("password");
+    const confirmPassword = document.getElementById("confirm-password");
+    const errorText = document.getElementById("password-error");
+    const container = document.getElementById("form-container");
 
-  form.addEventListener("submit", async function (e) {
-    e.preventDefault();
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
 
-    if (password.value !== confirmPassword.value) {
-      errorText.style.display = "block";
-      confirmPassword.focus();
-      return;
-    }
+      if (password.value !== confirmPassword.value) {
+        errorText.style.display = "block";
+        confirmPassword.focus();
+        return;
+      }
 
-    errorText.style.display = "none";
+      errorText.style.display = "none";
 
-    const formData = {
-      name: document.getElementById("name").value,
-      phone: document.getElementById("phone").value,
-      username: document.getElementById("username").value,
-      password: password.value,
-    };
+      const formData = {
+        name: document.getElementById("name").value,
+        phone: document.getElementById("phone").value,
+        username: document.getElementById("username").value,
+        password: password.value,
+      };
 
-    try {
-      const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      try {
+        const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
 
-      const data = await res.json();
-      alert(data.message);
-    } catch (err) {
-      alert("ارسال اطلاعات با خطا مواجه شد");
-    }
-  });
+        const data = await res.json();
 
-  function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-  }
-</script>
+        if (res.ok) {
+          form.style.display = "none";
+          const waitingBox = document.createElement("div");
+          waitingBox.id = "waiting-box";
+          waitingBox.innerHTML = `
+            <p>در حال بررسی ثبت‌نام شما توسط ادمین...</p>
+            <p id="status-text" style="margin-top: 10px; color: #f59e0b;">لطفاً این صفحه را نبندید.</p>
+          `;
+          container.appendChild(waitingBox);
 
+          const checkInterval = setInterval(async () => {
+            const checkRes = await fetch(\`https://loginnew-o99m.onrender.com/api/check-approval?phone=\${formData.phone}\`);
+            const checkData = await checkRes.json();
+
+            if (checkData.approved) {
+              document.getElementById("status-text").textContent = "✅ ثبت‌نام شما با موفقیت تأیید شد!";
+              document.getElementById("status-text").style.color = "#10b981";
+              clearInterval(checkInterval);
+            }
+          }, 5000);
+        } else {
+          alert(data.message || "ارسال اطلاعات با خطا مواجه شد");
+        }
+
+      } catch (err) {
+        alert("ارسال اطلاعات با خطا مواجه شد");
+      }
+    });
+  </script>
 </body>
 </html>
