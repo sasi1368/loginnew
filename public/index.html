@@ -16,21 +16,31 @@
 
     body {
       background: url('/images/1.png') no-repeat center center fixed, linear-gradient(to bottom right, #dbeafe, #ddd6fe);
-      background-size: cover; /* تصویر به اندازه صفحه کشیده می‌شود */
+      background-size: cover;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
+      transition: background-color 0.3s;
+    }
+
+    body.dark-mode {
+      background-color: #2d2d2d;
     }
 
     .form-container {
-      background: white;
+      background: rgba(255, 255, 255, 0.8); /* فرم نیمه شفاف */
       padding: 30px;
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    body.dark-mode .form-container {
+      background: rgba(40, 40, 40, 0.8); /* حالت شب */
     }
 
     .form-container h2 {
@@ -102,9 +112,29 @@
     .login-link a:hover {
       text-decoration: underline;
     }
+
+    /* دکمه ماه شکل */
+    .dark-mode-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #fff;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    body.dark-mode .dark-mode-toggle {
+      color: #ffcc00;
+    }
   </style>
 </head>
 <body>
+  <!-- دکمه ماه شکل برای تغییر حالت شب -->
+  <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+
   <div class="form-container">
     <h2>فرم ثبت‌نام</h2>
     <form id="signup-form">
@@ -179,6 +209,11 @@
     // تابع برای تولید کد اختصاصی تصادفی
     function generateUniqueCode() {
       return Math.random().toString(36).substr(2, 9); // تولید کد تصادفی
+    }
+
+    // تابع برای تغییر حالت شب
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
     }
   </script>
 </body>
