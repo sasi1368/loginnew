@@ -30,6 +30,7 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
+      text-align: center;
     }
 
     .form-container h2 {
@@ -44,6 +45,7 @@
       margin-bottom: 6px;
       color: #374151;
       font-weight: bold;
+      text-align: right;
     }
 
     input {
@@ -102,52 +104,68 @@
       text-decoration: underline;
     }
 
-    .pending-message {
-      text-align: center;
+    .pending-message, .approved-message {
       font-size: 16px;
-      color: #6b7280;
       margin-top: 20px;
+      display: none;
     }
 
-    .approved-message {
-      text-align: center;
-      font-size: 18px;
-      color: green;
+    .login-button {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
       font-weight: bold;
-      margin-top: 20px;
+      transition: background-color 0.3s;
+    }
+
+    .login-button:hover {
+      background-color: #2563eb;
     }
   </style>
 </head>
 <body>
   <div class="form-container">
     <h2>فرم ثبت‌نام</h2>
+
     <form id="signup-form">
       <label for="name">نام کامل</label>
-      <input type="text" id="name" name="name" placeholder="مثلاً علی رضایی" required />
+      <input type="text" id="name" name="name" required />
 
       <label for="phone">شماره تماس</label>
-      <input type="tel" id="phone" name="phone" placeholder="مثلاً 09123456789" required />
+      <input type="tel" id="phone" name="phone" required />
 
       <label for="username">نام کاربری</label>
-      <input type="text" id="username" name="username" placeholder="مثلاً ali_rz" required />
+      <input type="text" id="username" name="username" required />
 
       <label for="password">رمز عبور</label>
-      <input type="password" id="password" name="password" placeholder="رمز دلخواه خود را وارد کنید" required />
+      <input type="password" id="password" name="password" required />
 
       <label for="confirm-password">تکرار رمز عبور</label>
-      <input type="password" id="confirm-password" name="confirm-password" placeholder="رمز را دوباره وارد کنید" required />
+      <input type="password" id="confirm-password" name="confirm-password" required />
 
       <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
 
       <button type="submit">ثبت‌نام</button>
-
-      <div class="login-link">
-        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
-        <a href="login.html">وارد شوید</a>
-      </div>
     </form>
-    <div class="pending-message" id="pending-message" style="display: none;">در حال بررسی ثبت‌نام شما توسط ادمین... لطفاً این صفحه را نبندید.</div>
-    <div class="approved-message" id="approved-message" style="display: none;">اکانت شما تایید شد! حالا می‌توانید وارد شوید.</div>
+
+    <div class="login-link">
+      <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+      <a href="login.html">وارد شوید</a>
+    </div>
+
+    <!-- پیام حالت Pending -->
+    <div class="pending-message" id="pending-message">اطلاعات شما ثبت شد. لطفاً منتظر تأیید ادمین بمانید...</div>
+
+    <!-- پیام تایید نهایی -->
+    <div class="approved-message" id="approved-message">
+      اکانت شما تایید شد! برای ورود کلیک کنید.
+      <br><br>
+      <a href="login.html" class="login-button">ورود به حساب</a>
+    </div>
   </div>
 
   <script>
@@ -184,33 +202,28 @@
         });
 
         const data = await res.json();
-        if (data.message) {
+        if (data.success) {
           form.style.display = "none";
           pendingMsg.style.display = "block";
-          checkApproval(formData.phone);
+
+          // بررسی تایید شدن توسط ادمین هر 5 ثانیه
+          const checkApproval = setInterval(async () => {
+            const statusRes = await fetch(`https://loginnew-o99m.onrender.com/api/check-status?phone=${formData.phone}`);
+            const statusData = await statusRes.json();
+
+            if (statusData.status === "approved") {
+              clearInterval(checkApproval);
+              pendingMsg.style.display = "none";
+              approvedMsg.style.display = "block";
+            }
+          }, 5000);
         } else {
-          alert("مشکلی در ثبت‌نام پیش آمد.");
+          alert(data.message || "خطایی رخ داد");
         }
       } catch (err) {
         alert("ارسال اطلاعات با خطا مواجه شد");
       }
     });
-
-    async function checkApproval(phone) {
-      const interval = setInterval(async () => {
-        try {
-          const checkRes = await fetch(`https://loginnew-o99m.onrender.com/api/check-approval?phone=${phone}`);
-          const checkData = await checkRes.json();
-          if (checkData.approved) {
-            clearInterval(interval);
-            pendingMsg.style.display = "none";
-            approvedMsg.style.display = "block";
-          }
-        } catch (error) {
-          console.error("خطا در بررسی وضعیت:", error);
-        }
-      }, 5000);
-    }
   </script>
 </body>
 </html>
