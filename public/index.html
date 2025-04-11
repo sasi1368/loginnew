@@ -2,8 +2,8 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>فرم ثبت‌نام</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فرم ثبت‌نام کامل</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
 
@@ -85,22 +85,21 @@
       display: none;
     }
 
-    .status-container {
-      margin-top: 20px;
+    .login-link {
       text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
     }
 
-    .status-container p {
-      font-size: 18px;
-      color: #555;
+    .login-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: bold;
+      margin-right: 5px;
     }
 
-    .pending {
-      color: orange;
-    }
-
-    .approved {
-      color: green;
+    .login-link a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -126,11 +125,12 @@
       <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
 
       <button type="submit">ثبت‌نام</button>
-    </form>
-  </div>
 
-  <div class="status-container" id="status-container">
-    <p class="pending" id="status-message">لطفاً منتظر تأیید ادمین باشید...</p>
+      <div class="login-link">
+        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+        <a href="login.html">وارد شوید</a>
+      </div>
+    </form>
   </div>
 
   <script>
@@ -171,22 +171,15 @@
       }
     });
 
-    // بررسی وضعیت تایید کاربر
-    const urlParams = new URLSearchParams(window.location.search);
-    const approvalStatus = urlParams.get('status'); // بررسی پارامتر 'status' در URL
+    // بررسی وضعیت ثبت‌نام (approved یا pending)
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get("status");
 
-    if (approvalStatus === 'approved') {
-      document.getElementById('status-container').innerHTML = `
-        <h2>تایید شد</h2>
-        <p class="approved">ثبت‌نام شما با موفقیت تایید شد.</p>
-        <a href="/login.html">برای ورود کلیک کنید</a>
-      `;
-    } else if (approvalStatus === 'pending') {
-      document.getElementById('status-container').innerHTML = `
-        <h2>در حال بررسی</h2>
-        <p class="pending">لطفاً منتظر تأیید ادمین باشید...</p>
-      `;
-    }
+      if (status === "approved") {
+        alert("✅ ثبت‌نام با موفقیت تایید شد. برای ورود به سیستم کلیک کنید.");
+      }
+    };
   </script>
 </body>
 </html>
