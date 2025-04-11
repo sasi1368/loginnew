@@ -59,7 +59,7 @@ app.post("/api/register-request", async (req, res) => {
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
 
-  const approveUrl = `${process.env.SERVER_URL}api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   const message = `
 👤 درخواست ثبت‌نام جدید:
