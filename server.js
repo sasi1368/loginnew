@@ -89,7 +89,7 @@ app.post("/api/register-request", async (req, res) => {
 });
 
 // تأیید ثبت‌نام توسط ادمین
-app.get("/api/approve", async (req, res) => {
+app.get("api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
