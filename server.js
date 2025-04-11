@@ -1,8 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const axios = require("axios");
 const path = require("path");
+const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
@@ -14,7 +14,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 
-// مدل کاربر تایید شده
+// مدل کاربر
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -22,19 +22,35 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
-// مدل کاربر در حالت انتظار
-const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
+// مدل بیمار
+const Patient = mongoose.model("Patient", new mongoose.Schema({
   name: String,
   phone: String,
-  username: String,
-  password: String,
+  code: String,
+  visited: { type: Boolean, default: false },
 }));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// سرو فایل‌های استاتیک (مثلاً index.html)
+// سرو فایل‌های استاتیک
 app.use(express.static(path.join(__dirname, "public")));
+
+// لاگین کاربر
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.json({ success: false });
+    }
+    res.json({ success: true, name: user.name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 
 // ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
@@ -65,9 +81,6 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
-    // ذخیره کاربر در PendingUser
-    await PendingUser.create({ name, phone, username, password });
-
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
     console.error(err);
@@ -75,36 +88,54 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
-// تایید ثبت‌نام و انتقال به User
+// تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
-    // چک کردن وجود کاربر در PendingUser
-    const pendingUser = await PendingUser.findOne({ phone });
-    if (!pendingUser) {
-      return res.send("⚠️ این کاربر در حالت انتظار نیست.");
+    const exists = await User.findOne({ phone });
+    if (exists) {
+      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // فقط ثبت کاربر جدید در User
     await User.create({ name, phone, username, password });
-
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
-    res.status(500).send("❌ خطا در تایید ثبت‌نام.");
+    res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
-// مسیر دیگر برای صفحه داشبورد (در صورت نیاز)
-app.get("/dashboard", (req, res) => {
-  // اطلاعات را از دیتابیس به صفحه داشبورد ارسال می‌کنید
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+// ثبت بیمار و تولید کد
+app.post("/api/patients", async (req, res) => {
+  const { name, phone, code } = req.body;
+
+  if (!name || !phone || !code) {
+    return res.json({ success: false, message: "اطلاعات ناقص است." });
+  }
+
+  try {
+    await Patient.create({ name, phone, code });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "خطا در ذخیره بیمار." });
+  }
 });
 
-// fallback برای مسیرهای ناشناس
+// آمار بیماران مراجعه‌کرده
+app.get("/api/patients/stats", async (req, res) => {
+  try {
+    const visitedCount = await Patient.countDocuments({ visited: true });
+    res.json({ visited: visitedCount });
+  } catch (err) {
+    res.status(500).json({ visited: 0 });
+  }
+});
+
+// fallback برای SPA
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 // اجرا
