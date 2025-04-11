@@ -22,17 +22,10 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, unique: true },
   username: String,
   password: String,
-});
-
-const PendingUserSchema = new mongoose.Schema({
-  name: String,
-  phone: { type: String, unique: true },
-  username: String,
-  password: String,
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' }, // وضعیت کاربر
 });
 
 const User = mongoose.model("User", UserSchema);
-const PendingUser = mongoose.model("PendingUser", PendingUserSchema);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -45,7 +38,7 @@ app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ username, password });
+    const user = await User.findOne({ username, password, status: 'approved' }); // فقط کاربران تأیید شده
     if (!user) {
       return res.json({ success: false });
     }
@@ -66,7 +59,7 @@ app.post("/api/register-request", async (req, res) => {
 
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?phone=${encodeURIComponent(phone)}`;
 
   const message = `
     👤 درخواست ثبت‌نام جدید:
@@ -78,8 +71,8 @@ app.post("/api/register-request", async (req, res) => {
   `;
 
   try {
-    // ثبت‌نام در PendingUser
-    await PendingUser.create({ name, phone, username, password });
+    // ثبت‌نام در User با وضعیت "در انتظار"
+    await User.create({ name, phone, username, password });
 
     // ارسال پیام به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -101,17 +94,19 @@ app.post("/api/register-request", async (req, res) => {
 
 // تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
-  const { name, phone, username, password } = req.query;
+  const { phone } = req.query;
 
   try {
-    const exists = await User.findOne({ phone });
-    if (exists) {
-      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
+    // پیدا کردن کاربر با شماره تماس
+    const pendingUser = await User.findOne({ phone, status: 'pending' });
+    if (!pendingUser) {
+      return res.send("❌ کاربر در وضعیت انتظار پیدا نشد.");
     }
 
-    // انتقال از PendingUser به User
-    await PendingUser.deleteOne({ phone });
-    await User.create({ name, phone, username, password });
+    // به روز رسانی وضعیت کاربر به "approved"
+    pendingUser.status = 'approved';
+    await pendingUser.save();
+
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
