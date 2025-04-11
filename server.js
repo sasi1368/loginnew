@@ -12,31 +12,27 @@ const PORT = process.env.PORT || 3000;
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
+})
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch(err => console.error("❌ Error connecting to MongoDB:", err));
 
 // مدل کاربر
-const User = mongoose.model("User", new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   name: String,
-  phone: String,
+  phone: { type: String, unique: true },
   username: String,
   password: String,
-}));
+});
 
-// مدل کاربر منتظر تایید
-const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
+const PendingUserSchema = new mongoose.Schema({
   name: String,
-  phone: String,
+  phone: { type: String, unique: true },
   username: String,
   password: String,
-}));
+});
 
-// مدل بیمار
-const Patient = mongoose.model("Patient", new mongoose.Schema({
-  name: String,
-  phone: String,
-  code: String,
-  visited: { type: Boolean, default: false },
-}));
+const User = mongoose.model("User", UserSchema);
+const PendingUser = mongoose.model("PendingUser", PendingUserSchema);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -64,30 +60,34 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
+  if (!name || !phone || !username || !password) {
+    return res.status(400).json({ message: "لطفاً همه فیلدها را پر کنید" });
+  }
+
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
-
   const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   const message = `
-👤 درخواست ثبت‌نام جدید:
-📛 نام: ${name}
-📱 شماره: ${phone}
-👤 نام کاربری: ${username}
-
-برای تأیید، روی دکمه زیر کلیک کنید:
+    👤 درخواست ثبت‌نام جدید:
+    📛 نام: ${name}
+    📱 شماره: ${phone}
+    👤 نام کاربری: ${username}
+  
+    برای تأیید، روی دکمه زیر کلیک کنید:
   `;
 
   try {
-    // ذخیره کاربر در PendingUser تا تایید شود
+    // ثبت‌نام در PendingUser
     await PendingUser.create({ name, phone, username, password });
 
+    // ارسال پیام به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
       chat_id: chatId,
       text: message,
       reply_markup: {
         inline_keyboard: [
-          [{ text: "✅ تأیید ثبت‌نام", url: approveUrl }], // لینک تایید
+          [{ text: "✅ تأیید ثبت‌نام", url: approveUrl }],
         ],
       },
     });
@@ -104,16 +104,14 @@ app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
-    // بررسی که آیا این کاربر قبلاً تایید شده یا خیر
     const exists = await User.findOne({ phone });
     if (exists) {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // حذف کاربر از PendingUser و انتقال به User
-    await PendingUser.findOneAndDelete({ phone });
+    // انتقال از PendingUser به User
+    await PendingUser.deleteOne({ phone });
     await User.create({ name, phone, username, password });
-
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
@@ -121,36 +119,9 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// ثبت بیمار و تولید کد
-app.post("/api/patients", async (req, res) => {
-  const { name, phone, code } = req.body;
-
-  if (!name || !phone || !code) {
-    return res.json({ success: false, message: "اطلاعات ناقص است." });
-  }
-
-  try {
-    await Patient.create({ name, phone, code });
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false, message: "خطا در ذخیره بیمار." });
-  }
-});
-
-// آمار بیماران مراجعه‌کرده
-app.get("/api/patients/stats", async (req, res) => {
-  try {
-    const visitedCount = await Patient.countDocuments({ visited: true });
-    res.json({ visited: visitedCount });
-  } catch (err) {
-    res.status(500).json({ visited: 0 });
-  }
-});
-
 // fallback برای SPA
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // اجرا
