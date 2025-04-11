@@ -55,7 +55,7 @@ app.post("/api/login", async (req, res) => {
     }
     res.json({ success: true, name: user.name });
   } catch (err) {
-    console.error(err);
+    console.error("Error during login:", err);
     res.status(500).json({ success: false });
   }
 });
@@ -94,7 +94,7 @@ app.post("/api/register-request", async (req, res) => {
 
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
-    console.error(err);
+    console.error("Error sending Telegram message:", err);
     res.status(500).json({ message: "خطا در ارسال به تلگرام" });
   }
 });
@@ -102,6 +102,8 @@ app.post("/api/register-request", async (req, res) => {
 // تأیید ثبت‌نام توسط ادمین (فقط از PendingUser)
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
+
+  console.log(`Approving user with phone: ${phone}, username: ${username}`);
 
   try {
     // بررسی آیا قبلاً ثبت شده؟
@@ -113,8 +115,11 @@ app.get("/api/approve", async (req, res) => {
     // پیدا کردن اطلاعات در PendingUser
     const pending = await PendingUser.findOne({ phone });
     if (!pending) {
+      console.error("No pending user found with phone:", phone);
       return res.send("❌ کاربر در لیست انتظار یافت نشد.");
     }
+
+    console.log("Pending user found:", pending);
 
     // ایجاد در User
     await User.create({
@@ -129,7 +134,7 @@ app.get("/api/approve", async (req, res) => {
 
     res.send("✅ کاربر با موفقیت تأیید و ثبت شد.");
   } catch (err) {
-    console.error(err);
+    console.error("Error during approval:", err);
     res.status(500).send("❌ خطا در تأیید کاربر.");
   }
 });
