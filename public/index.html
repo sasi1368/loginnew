@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ورود به سامانه</title>
+  <title>فرم ثبت‌نام کامل</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
 
@@ -15,48 +15,56 @@
     }
 
     body {
-      background: url('images/1.png') no-repeat center center/cover;
-      min-height: 100vh;
+      background: url('/images/1.png') no-repeat center center fixed, linear-gradient(to bottom right, #dbeafe, #ddd6fe);
+      background-size: cover;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      min-height: 100vh;
       padding: 20px;
-      background-color: transparent;
-      color: var(--text-color, #000000);
+      transition: background-color 0.3s;
     }
 
-    .login-container {
-      background-color: rgba(255, 255, 255, 0.75);
-      padding: 30px 25px;
+    body.dark-mode {
+      background-color: #2d2d2d;
+    }
+
+    .form-container {
+      background: rgba(255, 255, 255, 0.8); /* فرم نیمه شفاف */
+      padding: 30px;
       border-radius: 20px;
-      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      max-width: 450px;
+      position: relative; /* برای موقعیت‌دهی دکمه */
+      transition: background-color 0.3s, box-shadow 0.3s;
     }
 
-    .login-container h2 {
+    body.dark-mode .form-container {
+      background: rgba(40, 40, 40, 0.8); /* حالت شب */
+    }
+
+    .form-container h2 {
       text-align: center;
+      color: #1f2937;
       margin-bottom: 25px;
       font-size: 24px;
-      color: var(--text-color, #1f2937);
     }
 
     label {
       display: block;
       margin-bottom: 6px;
-      color: var(--label-color, #374151);
+      color: #374151;
       font-weight: bold;
     }
 
-    input[type="text"],
-    input[type="password"] {
+    input {
       width: 100%;
       padding: 12px;
       border: 1px solid #d1d5db;
       border-radius: 10px;
       margin-bottom: 16px;
-      font-size: 15px;
-      transition: border-color 0.3s;
+      transition: 0.3s;
     }
 
     input:focus {
@@ -65,7 +73,7 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    button[type="submit"] {
+    button {
       width: 100%;
       background-color: #3b82f6;
       color: white;
@@ -75,128 +83,142 @@
       font-size: 16px;
       cursor: pointer;
       transition: background-color 0.3s;
+      margin-top: 10px;
     }
 
-    button[type="submit"]:hover {
+    button:hover {
       background-color: #2563eb;
     }
 
-    .signup-link {
+    .error {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .login-link {
       text-align: center;
       margin-top: 15px;
       font-size: 14px;
+      position: relative;
+      z-index: 1; /* لینک بالاتر از دکمه باشد */
     }
 
-    .signup-link a {
+    .login-link a {
       color: #3b82f6;
       text-decoration: none;
       font-weight: bold;
       margin-right: 5px;
     }
 
-    .signup-link a:hover {
+    .login-link a:hover {
       text-decoration: underline;
     }
 
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .checkbox-remember {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-    }
-
-    .checkbox-remember input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      margin-left: 5px;
-    }
-
-    .dark-mode-btn {
-      width: 28px;
-      height: 28px;
-      background-color: transparent;
+    /* دکمه ماه شکل کوچک */
+    .dark-mode-toggle {
+      position: absolute;
+      bottom: 10px; /* دکمه پایین فرم */
+      right: 50%;
+      transform: translateX(50%);
+      background: none;
       border: none;
-      cursor: pointer;
-      font-size: 20px;
-      color: var(--text-color, #000000);
-      margin-left: 10px; /* فاصله از چک‌باکس */
-    }
-
-    body.dark-mode {
-      --background-color: transparent;
-      --text-color: #ffffff;
-      --label-color: #e5e5e5;
-    }
-
-    .dark-mode .login-container {
-      background-color: rgba(30, 30, 30, 0.75);
-    }
-
-    .dark-mode input {
-      background-color: #333;
+      font-size: 14px; /* اندازه دکمه کاهش یافته است */
       color: #fff;
-      border-color: #444;
+      cursor: pointer;
+      transition: color 0.3s;
+      z-index: 0; /* دکمه پشت لینک وارد شوید */
     }
 
-    .dark-mode button[type="submit"] {
-      background-color: #4c6ef5;
-    }
-
-    .dark-mode button[type="submit"]:hover {
-      background-color: #3a55d4;
-    }
-
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 20px;
-      }
-
-      input, button {
-        font-size: 14px;
-      }
-
-      .dark-mode-btn {
-        font-size: 20px;
-      }
+    body.dark-mode .dark-mode-toggle {
+      color: #ffcc00;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h2>ورود به سامانه</h2>
-    <form>
+  <div class="form-container">
+    <!-- دکمه ماه شکل کوچک برای تغییر حالت شب -->
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+
+    <h2>فرم ثبت‌نام</h2>
+    <form id="signup-form">
+      <label for="name">نام کامل</label>
+      <input type="text" id="name" name="name" placeholder="مثلاً علی رضایی" required />
+
+      <label for="phone">شماره تماس</label>
+      <input type="tel" id="phone" name="phone" placeholder="مثلاً 09123456789" required />
+
       <label for="username">نام کاربری</label>
-      <input type="text" id="username" name="username" placeholder="نام کاربری خود را وارد کنید" required>
+      <input type="text" id="username" name="username" placeholder="مثلاً ali_rz" required />
 
       <label for="password">رمز عبور</label>
-      <input type="password" id="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+      <input type="password" id="password" name="password" placeholder="رمز دلخواه خود را وارد کنید" required />
 
-      <div class="checkbox-container">
-        <div class="checkbox-remember">
-          <input type="checkbox" id="rememberMe">
-          <label for="rememberMe">مرا به خاطر بسپار</label>
-        </div>
-        <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
-      </div>
+      <label for="confirm-password">تکرار رمز عبور</label>
+      <input type="password" id="confirm-password" name="confirm-password" placeholder="رمز را دوباره وارد کنید" required />
 
-      <button type="submit">ورود</button>
+      <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
 
-      <div class="signup-link">
-        <span>ثبت‌نام نکرده‌اید؟</span>
-        <a href="index.html">ثبت‌نام کنید</a>
+      <button type="submit">ثبت‌نام</button>
+
+      <div class="login-link">
+        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+        <a href="login.html">وارد شوید</a>
       </div>
     </form>
   </div>
 
   <script>
+    const form = document.getElementById("signup-form");
+    const password = document.getElementById("password");
+    const confirmPassword = document.getElementById("confirm-password");
+    const errorText = document.getElementById("password-error");
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      if (password.value !== confirmPassword.value) {
+        errorText.style.display = "block";
+        confirmPassword.focus();
+        return;
+      }
+
+      errorText.style.display = "none";
+
+      // تولید کد اختصاصی برای کاربر
+      const uniqueCode = generateUniqueCode();
+
+      const formData = {
+        name: document.getElementById("name").value,
+        phone: document.getElementById("phone").value,
+        username: document.getElementById("username").value,
+        password: password.value,
+        code: uniqueCode, // اضافه کردن کد اختصاصی
+      };
+
+      try {
+        const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await res.json();
+        alert(data.message);
+      } catch (err) {
+        alert("ارسال اطلاعات با خطا مواجه شد");
+      }
+    });
+
+    // تابع برای تولید کد اختصاصی تصادفی
+    function generateUniqueCode() {
+      return Math.random().toString(36).substr(2, 9); // تولید کد تصادفی
+    }
+
+    // تابع برای تغییر حالت شب
     function toggleDarkMode() {
-      document.body.classList.toggle('dark-mode');
+      document.body.classList.toggle("dark-mode");
     }
   </script>
 </body>
