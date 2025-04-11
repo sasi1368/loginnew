@@ -30,10 +30,10 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
-      text-align: center;
     }
 
     .form-container h2 {
+      text-align: center;
       color: #1f2937;
       margin-bottom: 25px;
       font-size: 24px;
@@ -44,7 +44,6 @@
       margin-bottom: 6px;
       color: #374151;
       font-weight: bold;
-      text-align: right;
     }
 
     input {
@@ -103,15 +102,24 @@
       text-decoration: underline;
     }
 
-    #waiting-box {
-      margin-top: 20px;
+    .pending-message {
+      text-align: center;
       font-size: 16px;
       color: #6b7280;
+      margin-top: 20px;
+    }
+
+    .approved-message {
+      text-align: center;
+      font-size: 18px;
+      color: green;
+      font-weight: bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="form-container" id="form-container">
+  <div class="form-container">
     <h2>فرم ثبت‌نام</h2>
     <form id="signup-form">
       <label for="name">نام کامل</label>
@@ -138,6 +146,8 @@
         <a href="login.html">وارد شوید</a>
       </div>
     </form>
+    <div class="pending-message" id="pending-message" style="display: none;">در حال بررسی ثبت‌نام شما توسط ادمین... لطفاً این صفحه را نبندید.</div>
+    <div class="approved-message" id="approved-message" style="display: none;">اکانت شما تایید شد! حالا می‌توانید وارد شوید.</div>
   </div>
 
   <script>
@@ -145,7 +155,8 @@
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirm-password");
     const errorText = document.getElementById("password-error");
-    const container = document.getElementById("form-container");
+    const pendingMsg = document.getElementById("pending-message");
+    const approvedMsg = document.getElementById("approved-message");
 
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -173,35 +184,33 @@
         });
 
         const data = await res.json();
-
-        if (res.ok) {
+        if (data.message) {
           form.style.display = "none";
-          const waitingBox = document.createElement("div");
-          waitingBox.id = "waiting-box";
-          waitingBox.innerHTML = `
-            <p>در حال بررسی ثبت‌نام شما توسط ادمین...</p>
-            <p id="status-text" style="margin-top: 10px; color: #f59e0b;">لطفاً این صفحه را نبندید.</p>
-          `;
-          container.appendChild(waitingBox);
-
-          const checkInterval = setInterval(async () => {
-            const checkRes = await fetch(\`https://loginnew-o99m.onrender.com/api/check-approval?phone=\${formData.phone}\`);
-            const checkData = await checkRes.json();
-
-            if (checkData.approved) {
-              document.getElementById("status-text").textContent = "✅ ثبت‌نام شما با موفقیت تأیید شد!";
-              document.getElementById("status-text").style.color = "#10b981";
-              clearInterval(checkInterval);
-            }
-          }, 5000);
+          pendingMsg.style.display = "block";
+          checkApproval(formData.phone);
         } else {
-          alert(data.message || "ارسال اطلاعات با خطا مواجه شد");
+          alert("مشکلی در ثبت‌نام پیش آمد.");
         }
-
       } catch (err) {
         alert("ارسال اطلاعات با خطا مواجه شد");
       }
     });
+
+    async function checkApproval(phone) {
+      const interval = setInterval(async () => {
+        try {
+          const checkRes = await fetch(`https://loginnew-o99m.onrender.com/api/check-approval?phone=${phone}`);
+          const checkData = await checkRes.json();
+          if (checkData.approved) {
+            clearInterval(interval);
+            pendingMsg.style.display = "none";
+            approvedMsg.style.display = "block";
+          }
+        } catch (error) {
+          console.error("خطا در بررسی وضعیت:", error);
+        }
+      }, 5000);
+    }
   </script>
 </body>
 </html>
