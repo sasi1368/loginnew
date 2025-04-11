@@ -1,8 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const axios = require("axios");
 const path = require("path");
+const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
@@ -22,17 +22,44 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
-// میدلورها
+// مدل بیمار
+const Patient = mongoose.model("Patient", new mongoose.Schema({
+  name: String,
+  phone: String,
+  code: String,
+  visited: { type: Boolean, default: false },
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// سرو فایل‌های استاتیک
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📩 API درخواست ثبت‌نام
+// لاگین کاربر
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.json({ success: false });
+    }
+    res.json({ success: true, name: user.name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
+
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   const message = `
 👤 درخواست ثبت‌نام جدید:
@@ -41,9 +68,7 @@ app.post("/api/register-request", async (req, res) => {
 👤 نام کاربری: ${username}
 
 برای تأیید، روی دکمه زیر کلیک کنید:
-`;
-
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  `;
 
   try {
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -56,52 +81,64 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
-    res.json({ message: "درخواست ثبت‌نام ارسال شد، منتظر تأیید ادمین باشید." });
+    res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "خطا در ارسال به تلگرام" });
   }
 });
 
-// ✅ API تأیید ثبت‌نام توسط ادمین
+// تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
-    const existing = await User.findOne({ phone });
-    if (existing) {
+    const exists = await User.findOne({ phone });
+    if (exists) {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
     await User.create({ name, phone, username, password });
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
+    console.error(err);
     res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
-// ✅ API ورود (login)
-app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
+// ثبت بیمار و تولید کد
+app.post("/api/patients", async (req, res) => {
+  const { name, phone, code } = req.body;
+
+  if (!name || !phone || !code) {
+    return res.json({ success: false, message: "اطلاعات ناقص است." });
+  }
 
   try {
-    const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.status(401).json({ message: "نام کاربری یا رمز عبور اشتباه است" });
-    }
-
-    res.json({ success: true, name: user.name });
+    await Patient.create({ name, phone, code });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ message: "خطا در ورود به سیستم" });
+    console.error(err);
+    res.json({ success: false, message: "خطا در ذخیره بیمار." });
   }
 });
 
-// fallback (SPA)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// آمار بیماران مراجعه‌کرده
+app.get("/api/patients/stats", async (req, res) => {
+  try {
+    const visitedCount = await Patient.countDocuments({ visited: true });
+    res.json({ visited: visitedCount });
+  } catch (err) {
+    res.status(500).json({ visited: 0 });
+  }
 });
 
-// اجرای سرور
+// fallback برای SPA
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// اجرا
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
