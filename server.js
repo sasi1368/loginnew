@@ -14,7 +14,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 
-// مدل کاربر
+// مدل‌ها
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -22,7 +22,13 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
-// مدل بیمار
+const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
+  name: String,
+  phone: String,
+  username: String,
+  password: String,
+}));
+
 const Patient = mongoose.model("Patient", new mongoose.Schema({
   name: String,
   phone: String,
@@ -42,9 +48,7 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.json({ success: false });
-    }
+    if (!user) return res.json({ success: false });
     res.json({ success: true, name: user.name });
   } catch (err) {
     console.error(err);
@@ -52,7 +56,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ثبت درخواست ثبت‌نام و ارسال به تلگرام
+// ثبت درخواست ثبت‌نام و ارسال به تلگرام + ذخیره در PendingUser
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password } = req.body;
 
@@ -68,9 +72,10 @@ app.post("/api/register-request", async (req, res) => {
 👤 نام کاربری: ${username}
 
 برای تأیید، روی دکمه زیر کلیک کنید:
-  `;
+`;
 
   try {
+    // ارسال به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
       chat_id: chatId,
       text: message,
@@ -81,22 +86,23 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
+    // ذخیره در PendingUser
+    await PendingUser.create({ name, phone, username, password });
+
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "خطا در ارسال به تلگرام" });
+    res.status(500).json({ message: "خطا در ارسال به تلگرام یا ذخیره داده" });
   }
 });
 
-// تأیید ثبت‌نام توسط ادمین
+// تایید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
     const exists = await User.findOne({ phone });
-    if (exists) {
-      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
-    }
+    if (exists) return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
 
     await User.create({ name, phone, username, password });
     res.send("✅ کاربر با موفقیت ثبت شد.");
@@ -106,7 +112,7 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// ثبت بیمار و تولید کد
+// ثبت بیمار
 app.post("/api/patients", async (req, res) => {
   const { name, phone, code } = req.body;
 
@@ -123,7 +129,7 @@ app.post("/api/patients", async (req, res) => {
   }
 });
 
-// آمار بیماران مراجعه‌کرده
+// آمار بیماران
 app.get("/api/patients/stats", async (req, res) => {
   try {
     const visitedCount = await Patient.countDocuments({ visited: true });
@@ -138,7 +144,6 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// اجرا
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
