@@ -67,7 +67,7 @@ app.post("/api/register-request", async (req, res) => {
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
 
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?phone=${encodeURIComponent(phone)}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   const message = `
 👤 درخواست ثبت‌نام جدید:
@@ -101,7 +101,7 @@ app.post("/api/register-request", async (req, res) => {
 
 // تأیید ثبت‌نام توسط ادمین (فقط از PendingUser)
 app.get("/api/approve", async (req, res) => {
-  const { phone } = req.query;
+  const { name, phone, username, password } = req.query;
 
   try {
     // بررسی آیا قبلاً ثبت شده؟
