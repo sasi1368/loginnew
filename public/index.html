@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>فرم ثبت‌نام</title>
+  <title>فرم ثبت‌نام کامل</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
 
@@ -85,28 +85,39 @@
       display: none;
     }
 
-    .status {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 15px;
-      color: #4b5563;
-    }
-
     .login-link {
-      display: none;
       text-align: center;
       margin-top: 15px;
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .login-link a {
-      color: #10b981;
+      color: #3b82f6;
       text-decoration: none;
       font-weight: bold;
+      margin-right: 5px;
     }
 
     .login-link a:hover {
       text-decoration: underline;
+    }
+
+    .status-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .status-container p {
+      font-size: 18px;
+      color: #555;
+    }
+
+    .pending {
+      color: orange;
+    }
+
+    .approved {
+      color: green;
     }
   </style>
 </head>
@@ -115,29 +126,33 @@
     <h2>فرم ثبت‌نام</h2>
     <form id="signup-form">
       <label for="name">نام کامل</label>
-      <input type="text" id="name" name="name" required />
+      <input type="text" id="name" name="name" placeholder="مثلاً علی رضایی" required />
 
       <label for="phone">شماره تماس</label>
-      <input type="tel" id="phone" name="phone" required />
+      <input type="tel" id="phone" name="phone" placeholder="مثلاً 09123456789" required />
 
       <label for="username">نام کاربری</label>
-      <input type="text" id="username" name="username" required />
+      <input type="text" id="username" name="username" placeholder="مثلاً ali_rz" required />
 
       <label for="password">رمز عبور</label>
-      <input type="password" id="password" name="password" required />
+      <input type="password" id="password" name="password" placeholder="رمز دلخواه خود را وارد کنید" required />
 
       <label for="confirm-password">تکرار رمز عبور</label>
-      <input type="password" id="confirm-password" name="confirm-password" required />
+      <input type="password" id="confirm-password" name="confirm-password" placeholder="رمز را دوباره وارد کنید" required />
 
       <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
+
       <button type="submit">ثبت‌نام</button>
+
+      <div class="login-link">
+        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+        <a href="login.html">وارد شوید</a>
+      </div>
     </form>
+  </div>
 
-    <div class="status" id="status-message"></div>
-
-    <div class="login-link" id="login-link">
-      <a href="login.html">ورود به حساب</a>
-    </div>
+  <div class="status-container" id="status-container">
+    <p class="pending" id="status-message">لطفاً منتظر تأیید ادمین باشید...</p>
   </div>
 
   <script>
@@ -145,8 +160,6 @@
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirm-password");
     const errorText = document.getElementById("password-error");
-    const statusMessage = document.getElementById("status-message");
-    const loginLink = document.getElementById("login-link");
 
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -167,37 +180,34 @@
       };
 
       try {
-        const res = await fetch("/api/register-request", {
+        const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
 
         const data = await res.json();
-        statusMessage.textContent = "✅ " + data.message;
-        checkApprovalLoop(formData.phone);
+        alert(data.message);
       } catch (err) {
-        alert("❌ ارسال اطلاعات با خطا مواجه شد");
+        alert("ارسال اطلاعات با خطا مواجه شد");
       }
     });
 
-    // بررسی تأیید توسط ادمین به صورت دوره‌ای
-    function checkApprovalLoop(phone) {
-      statusMessage.textContent = "⏳ منتظر تأیید ادمین...";
-      const interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/check-status?phone=${encodeURIComponent(phone)}`);
-          const data = await res.json();
+    // بررسی وضعیت تایید کاربر
+    const urlParams = new URLSearchParams(window.location.search);
+    const approvalStatus = urlParams.get('status'); // بررسی پارامتر 'status' در URL
 
-          if (data.status === "approved") {
-            clearInterval(interval);
-            statusMessage.textContent = "✅ ثبت‌نام شما تأیید شد.";
-            loginLink.style.display = "block";
-          }
-        } catch (err) {
-          console.error("خطا در بررسی تأیید:", err);
-        }
-      }, 4000); // بررسی هر 4 ثانیه
+    if (approvalStatus === 'approved') {
+      document.getElementById('status-container').innerHTML = `
+        <h2>تایید شد</h2>
+        <p class="approved">ثبت‌نام شما با موفقیت تایید شد.</p>
+        <a href="/login.html">برای ورود کلیک کنید</a>
+      `;
+    } else if (approvalStatus === 'pending') {
+      document.getElementById('status-container').innerHTML = `
+        <h2>در حال بررسی</h2>
+        <p class="pending">لطفاً منتظر تأیید ادمین باشید...</p>
+      `;
     }
   </script>
 </body>
