@@ -1,8 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const path = require("path");
 const axios = require("axios");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -14,7 +14,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 
-// مدل کاربر
+// مدل کاربر تایید شده
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
   phone: String,
@@ -22,35 +22,19 @@ const User = mongoose.model("User", new mongoose.Schema({
   password: String,
 }));
 
-// مدل بیمار
-const Patient = mongoose.model("Patient", new mongoose.Schema({
+// مدل کاربر در حالت انتظار
+const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
   name: String,
   phone: String,
-  code: String,
-  visited: { type: Boolean, default: false },
+  username: String,
+  password: String,
 }));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// سرو فایل‌های استاتیک
+// سرو فایل‌های استاتیک (مثلاً index.html)
 app.use(express.static(path.join(__dirname, "public")));
-
-// لاگین کاربر
-app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.json({ success: false });
-    }
-    res.json({ success: true, name: user.name });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
 
 // ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
@@ -81,6 +65,9 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
+    // ذخیره کاربر در PendingUser
+    await PendingUser.create({ name, phone, username, password });
+
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
     console.error(err);
@@ -88,54 +75,39 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
-// تأیید ثبت‌نام توسط ادمین
+// تایید ثبت‌نام و انتقال به User
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
-    const exists = await User.findOne({ phone });
-    if (exists) {
-      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
+    // چک کردن وجود کاربر در PendingUser
+    const pendingUser = await PendingUser.findOne({ phone });
+    if (!pendingUser) {
+      return res.send("⚠️ این کاربر در حالت انتظار نیست.");
     }
 
+    // انتقال کاربر از PendingUser به User
     await User.create({ name, phone, username, password });
+
+    // حذف کاربر از PendingUser
+    await PendingUser.deleteOne({ phone });
+
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
-    res.status(500).send("❌ خطا در ثبت کاربر.");
+    res.status(500).send("❌ خطا در تایید ثبت‌نام.");
   }
 });
 
-// ثبت بیمار و تولید کد
-app.post("/api/patients", async (req, res) => {
-  const { name, phone, code } = req.body;
-
-  if (!name || !phone || !code) {
-    return res.json({ success: false, message: "اطلاعات ناقص است." });
-  }
-
-  try {
-    await Patient.create({ name, phone, code });
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false, message: "خطا در ذخیره بیمار." });
-  }
+// مسیر دیگر برای صفحه داشبورد (در صورت نیاز)
+app.get("/dashboard", (req, res) => {
+  // اطلاعات را از دیتابیس به صفحه داشبورد ارسال می‌کنید
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// آمار بیماران مراجعه‌کرده
-app.get("/api/patients/stats", async (req, res) => {
-  try {
-    const visitedCount = await Patient.countDocuments({ visited: true });
-    res.json({ visited: visitedCount });
-  } catch (err) {
-    res.status(500).json({ visited: 0 });
-  }
-});
-
-// fallback برای SPA
+// fallback برای مسیرهای ناشناس
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // اجرا
