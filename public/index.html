@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>فرم ثبت‌نام کامل</title>
+  <title>فرم ثبت‌نام</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
 
@@ -30,7 +30,6 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
-      text-align: center;
     }
 
     .form-container h2 {
@@ -45,7 +44,6 @@
       margin-bottom: 6px;
       color: #374151;
       font-weight: bold;
-      text-align: right;
     }
 
     input {
@@ -87,50 +85,34 @@
       display: none;
     }
 
-    .login-link {
+    .status {
       text-align: center;
       margin-top: 15px;
-      font-size: 14px;
+      font-size: 15px;
+      color: #4b5563;
+    }
+
+    .login-link {
+      display: none;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 16px;
     }
 
     .login-link a {
-      color: #3b82f6;
+      color: #10b981;
       text-decoration: none;
       font-weight: bold;
-      margin-right: 5px;
     }
 
     .login-link a:hover {
       text-decoration: underline;
-    }
-
-    .pending-message, .approved-message {
-      font-size: 16px;
-      margin-top: 20px;
-      display: none;
-    }
-
-    .login-button {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 10px 20px;
-      background-color: #3b82f6;
-      color: white;
-      text-decoration: none;
-      border-radius: 10px;
-      font-weight: bold;
-      transition: background-color 0.3s;
-    }
-
-    .login-button:hover {
-      background-color: #2563eb;
     }
   </style>
 </head>
 <body>
   <div class="form-container">
     <h2>فرم ثبت‌نام</h2>
-
     <form id="signup-form">
       <label for="name">نام کامل</label>
       <input type="text" id="name" name="name" required />
@@ -148,23 +130,13 @@
       <input type="password" id="confirm-password" name="confirm-password" required />
 
       <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
-
       <button type="submit">ثبت‌نام</button>
     </form>
 
-    <div class="login-link">
-      <span>قبلاً ثبت‌نام کرده‌اید؟</span>
-      <a href="login.html">وارد شوید</a>
-    </div>
+    <div class="status" id="status-message"></div>
 
-    <!-- پیام حالت Pending -->
-    <div class="pending-message" id="pending-message">اطلاعات شما ثبت شد. لطفاً منتظر تأیید ادمین بمانید...</div>
-
-    <!-- پیام تایید نهایی -->
-    <div class="approved-message" id="approved-message">
-      اکانت شما تایید شد! برای ورود کلیک کنید.
-      <br><br>
-      <a href="login.html" class="login-button">ورود به حساب</a>
+    <div class="login-link" id="login-link">
+      <a href="login.html">ورود به حساب</a>
     </div>
   </div>
 
@@ -173,8 +145,8 @@
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirm-password");
     const errorText = document.getElementById("password-error");
-    const pendingMsg = document.getElementById("pending-message");
-    const approvedMsg = document.getElementById("approved-message");
+    const statusMessage = document.getElementById("status-message");
+    const loginLink = document.getElementById("login-link");
 
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -195,35 +167,38 @@
       };
 
       try {
-        const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
+        const res = await fetch("/api/register-request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
 
         const data = await res.json();
-        if (data.success) {
-          form.style.display = "none";
-          pendingMsg.style.display = "block";
-
-          // بررسی تایید شدن توسط ادمین هر 5 ثانیه
-          const checkApproval = setInterval(async () => {
-            const statusRes = await fetch(`https://loginnew-o99m.onrender.com/api/check-status?phone=${formData.phone}`);
-            const statusData = await statusRes.json();
-
-            if (statusData.status === "approved") {
-              clearInterval(checkApproval);
-              pendingMsg.style.display = "none";
-              approvedMsg.style.display = "block";
-            }
-          }, 5000);
-        } else {
-          alert(data.message || "خطایی رخ داد");
-        }
+        statusMessage.textContent = "✅ " + data.message;
+        checkApprovalLoop(formData.phone);
       } catch (err) {
-        alert("ارسال اطلاعات با خطا مواجه شد");
+        alert("❌ ارسال اطلاعات با خطا مواجه شد");
       }
     });
+
+    // بررسی تأیید توسط ادمین به صورت دوره‌ای
+    function checkApprovalLoop(phone) {
+      statusMessage.textContent = "⏳ منتظر تأیید ادمین...";
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/check-status?phone=${encodeURIComponent(phone)}`);
+          const data = await res.json();
+
+          if (data.status === "approved") {
+            clearInterval(interval);
+            statusMessage.textContent = "✅ ثبت‌نام شما تأیید شد.";
+            loginLink.style.display = "block";
+          }
+        } catch (err) {
+          console.error("خطا در بررسی تأیید:", err);
+        }
+      }, 4000); // بررسی هر 4 ثانیه
+    }
   </script>
 </body>
 </html>
