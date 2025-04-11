@@ -18,14 +18,10 @@ const User = mongoose.model("User", new mongoose.Schema({
   phone: String,
   username: String,
   password: String,
-  approved: { type: Boolean, default: false }, // افزودن فیلد approved
 }));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// سرو فایل‌های استاتیک (مثلاً index.html)
-app.use(express.static(path.join(__dirname, "public")));
 
 // ارسال درخواست ثبت‌نام به تلگرام
 app.post("/api/register-request", async (req, res) => {
@@ -43,7 +39,7 @@ app.post("/api/register-request", async (req, res) => {
 برای تأیید، روی دکمه زیر کلیک کنید:
 `;
 
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?phone=${encodeURIComponent(phone)}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
   try {
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -65,25 +61,18 @@ app.post("/api/register-request", async (req, res) => {
 
 // تایید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
-  const { phone } = req.query;
+  const { name, phone, username, password } = req.query;
 
   try {
-    // جستجو برای کاربر بر اساس شماره تلفن
-    const user = await User.findOne({ phone });
-
-    if (!user) {
-      return res.send("⚠️ این کاربر پیدا نشد.");
+    const existing = await User.findOne({ phone });
+    if (existing) {
+      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // تغییر وضعیت تایید
-    user.approved = true;
-    await user.save();
-
-    // ارسال پیغام تایید به تلگرام و تغییر وضعیت صفحه
-    res.redirect(`${process.env.FRONTEND_URL}/confirmation.html?status=approved`);
+    await User.create({ name, phone, username, password });
+    res.redirect(`${process.env.CLIENT_URL}/?status=approved`); // ریدایرکت به صفحه تایید در سایت
   } catch (err) {
-    console.error("خطا در تایید ثبت‌نام:", err);
-    res.status(500).send("❌ خطا در تایید ثبت‌نام.");
+    res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
