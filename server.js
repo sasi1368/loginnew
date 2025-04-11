@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -14,23 +15,21 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 
-// مدل کاربر نهایی
+// مدل‌های پایگاه داده
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
-  phoneNumber: { type: String, unique: true },
+  phoneNumber: { type: String, unique: true, required: true },
   username: String,
   password: String,
 }));
 
-// مدل کاربر در انتظار تأیید
 const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
   name: String,
-  phoneNumber: String,
+  phoneNumber: { type: String, required: true },
   username: String,
   password: String,
 }));
 
-// مدل بیمار
 const Patient = mongoose.model("Patient", new mongoose.Schema({
   name: String,
   phone: String,
@@ -42,76 +41,63 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// API: لاگین
+// API: ورود کاربر
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.json({ success: false });
-    }
+    if (!user) return res.json({ success: false });
     res.json({ success: true, name: user.name });
   } catch (err) {
-    console.error(err);
+    console.error("Login Error:", err);
     res.status(500).json({ success: false });
   }
 });
 
-// API: ارسال درخواست ثبت‌نام
+// API: ثبت‌نام اولیه و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
   const { name, phoneNumber, username, password } = req.body;
-
-  const token = process.env.BOT_TOKEN;
-  const chatId = process.env.ADMIN_CHAT_ID;
-
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phoneNumber=${encodeURIComponent(phoneNumber)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-
-  const message = `
-👤 درخواست ثبت‌نام جدید:
-📛 نام: ${name}
-📱 شماره: ${phoneNumber}
-👤 نام کاربری: ${username}
-
-برای تأیید، روی دکمه زیر کلیک کنید:
-  `;
+  if (!name || !phoneNumber || !username || !password) {
+    return res.status(400).json({ message: "اطلاعات ناقص است." });
+  }
 
   try {
+    const alreadyPending = await PendingUser.findOne({ phoneNumber });
+    if (alreadyPending) {
+      return res.status(400).json({ message: "در حال انتظار تأیید است." });
+    }
+
     await PendingUser.create({ name, phoneNumber, username, password });
 
-    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-      chat_id: chatId,
+    const approveUrl = `${process.env.SERVER_URL}/api/approve?phoneNumber=${encodeURIComponent(phoneNumber)}`;
+
+    const message = `👤 درخواست ثبت‌نام جدید:\n📛 نام: ${name}\n📱 شماره: ${phoneNumber}\n👤 نام کاربری: ${username}`;
+
+    await axios.post(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+      chat_id: process.env.ADMIN_CHAT_ID,
       text: message,
       reply_markup: {
-        inline_keyboard: [
-          [{ text: "✅ تأیید ثبت‌نام", url: approveUrl }],
-        ],
+        inline_keyboard: [[{ text: "✅ تأیید ثبت‌نام", url: approveUrl }]],
       },
     });
 
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "خطا در ارسال به تلگرام یا ذخیره‌سازی." });
+    console.error("Register Request Error:", err);
+    res.status(500).json({ message: "خطا در ارسال درخواست یا ذخیره اطلاعات." });
   }
 });
 
-// API: تأیید توسط ادمین
+// API: تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { phoneNumber } = req.query;
-
   try {
     const pendingUser = await PendingUser.findOne({ phoneNumber });
-    if (!pendingUser) {
-      return res.send("❌ کاربری با این شماره در حالت انتظار نیست.");
-    }
+    if (!pendingUser) return res.send("❌ کاربری با این شماره در انتظار نیست.");
 
-    // بررسی وجود قبلی در کاربران نهایی
-    const exists = await User.findOne({ phoneNumber });
-    if (exists) {
-      return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
-    }
+    const existingUser = await User.findOne({ phoneNumber });
+    if (existingUser) return res.send("⚠️ کاربر قبلاً ثبت شده است.");
 
-    // ایجاد کاربر و حذف از PendingUser
     await User.create({
       name: pendingUser.name,
       phoneNumber: pendingUser.phoneNumber,
@@ -123,23 +109,21 @@ app.get("/api/approve", async (req, res) => {
 
     res.send("✅ ثبت‌نام با موفقیت انجام شد.");
   } catch (err) {
-    console.error(err);
-    res.status(500).send("❌ خطا در ثبت کاربر.");
+    console.error("Approval Error:", err);
+    res.status(500).send("❌ خطا در تأیید ثبت‌نام.");
   }
 });
 
 // API: ثبت بیمار
 app.post("/api/patients", async (req, res) => {
   const { name, phone, code } = req.body;
-  if (!name || !phone || !code) {
-    return res.json({ success: false, message: "اطلاعات ناقص است." });
-  }
+  if (!name || !phone || !code) return res.json({ success: false, message: "اطلاعات ناقص است." });
 
   try {
     await Patient.create({ name, phone, code });
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("Patient Save Error:", err);
     res.json({ success: false, message: "خطا در ذخیره بیمار." });
   }
 });
@@ -154,12 +138,11 @@ app.get("/api/patients/stats", async (req, res) => {
   }
 });
 
-// fallback برای SPA
+// fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// شروع سرور
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
