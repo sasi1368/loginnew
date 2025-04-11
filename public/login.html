@@ -2,74 +2,91 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ورود به سامانه</title>
+  <title>ورود کاربر</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Vazirmatn', sans-serif; }
     body {
-      background: url('images/1.png') no-repeat center center/cover;
+      margin: 0;
+      font-family: 'Vazirmatn', sans-serif;
+      background-image: url('images/1.png');
+      background-size: cover;
+      background-position: center;
       min-height: 100vh;
+      color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
     }
+
     .login-container {
-      background-color: rgba(255, 255, 255, 0.85);
-      padding: 30px 25px;
-      border-radius: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border-radius: 16px;
       max-width: 400px;
       width: 100%;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    h2 { text-align: center; margin-bottom: 25px; }
-    label { display: block; margin-bottom: 6px; font-weight: bold; }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+
     input {
       width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
+      padding: 10px;
       border-radius: 10px;
-      margin-bottom: 16px;
+      border: none;
+      margin-top: 5px;
     }
+
     button {
       width: 100%;
-      background-color: #3b82f6;
+      background-color: #10b981;
       color: white;
       padding: 12px;
       border: none;
       border-radius: 10px;
+      margin-top: 20px;
       cursor: pointer;
       font-size: 16px;
     }
-    .signup-link { text-align: center; margin-top: 15px; font-size: 14px; }
-    .signup-link a { color: #3b82f6; text-decoration: none; font-weight: bold; }
+
+    .error-message {
+      color: #f87171;
+      text-align: center;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
   <div class="login-container">
     <h2>ورود به سامانه</h2>
-    <form onsubmit="login(event)">
-      <label for="username">نام کاربری</label>
-      <input type="text" id="username" required>
+    <form onsubmit="return handleLogin(event)">
+      <label for="username">نام کاربری:</label>
+      <input type="text" id="username" required />
 
-      <label for="password">رمز عبور</label>
-      <input type="password" id="password" required>
+      <label for="password">رمز عبور:</label>
+      <input type="password" id="password" required />
 
       <button type="submit">ورود</button>
-
-      <div class="signup-link">
-        <span>ثبت‌نام نکرده‌اید؟</span>
-        <a href="index.html">ثبت‌نام کنید</a>
-      </div>
     </form>
+
+    <div class="error-message" id="errorMessage"></div>
   </div>
 
   <script>
-    async function login(event) {
+    async function handleLogin(event) {
       event.preventDefault();
+
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
+      const errorMessage = document.getElementById("errorMessage");
+      errorMessage.textContent = "";
 
       try {
         const res = await fetch("/api/login", {
@@ -79,15 +96,18 @@
         });
 
         const data = await res.json();
-        if (res.ok) {
-          localStorage.setItem("username", data.name); // ذخیره نام برای dashboard
-          window.location.href = "dashboard.html"; // هدایت به صفحه داشبورد
+        if (data.success) {
+          localStorage.setItem("name", data.name);
+          localStorage.setItem("username", username);
+          window.location.href = "/dashboard.html";
         } else {
-          alert(data.message || "خطا در ورود");
+          errorMessage.textContent = "نام کاربری یا رمز عبور اشتباه است.";
         }
       } catch (err) {
-        alert("مشکل در اتصال به سرور");
+        errorMessage.textContent = "خطا در برقراری ارتباط با سرور.";
       }
+
+      return false;
     }
   </script>
 </body>
