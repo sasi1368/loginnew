@@ -36,6 +36,7 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 450px;
+      position: relative; /* برای موقعیت‌دهی دکمه */
       transition: background-color 0.3s, box-shadow 0.3s;
     }
 
@@ -100,6 +101,8 @@
       text-align: center;
       margin-top: 15px;
       font-size: 14px;
+      position: relative;
+      z-index: 1; /* برای بالاتر بودن لینک */
     }
 
     .login-link a {
@@ -113,17 +116,19 @@
       text-decoration: underline;
     }
 
-    /* دکمه ماه شکل */
+    /* دکمه ماه شکل کوچک */
     .dark-mode-toggle {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background: none;
       border: none;
       font-size: 24px;
       color: #fff;
       cursor: pointer;
       transition: color 0.3s;
+      z-index: 0; /* دکمه پشت لینک باشد */
     }
 
     body.dark-mode .dark-mode-toggle {
@@ -132,10 +137,10 @@
   </style>
 </head>
 <body>
-  <!-- دکمه ماه شکل برای تغییر حالت شب -->
-  <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
-
   <div class="form-container">
+    <!-- دکمه ماه شکل کوچک برای تغییر حالت شب -->
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+
     <h2>فرم ثبت‌نام</h2>
     <form id="signup-form">
       <label for="name">نام کامل</label>
