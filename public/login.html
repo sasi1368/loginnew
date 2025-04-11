@@ -15,7 +15,7 @@
     }
 
     body {
-      background: url('https://imgur.com/a/dFYCwF5') no-repeat center center/cover;
+      background: url('images/1.png') no-repeat center center/cover;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -24,11 +24,6 @@
       background-color: transparent;
       color: var(--text-color, #000000);
     }
-
-body {
-  background: url('images/1.png') no-repeat center center/cover;
-}
-
 
     .login-container {
       background-color: rgba(255, 255, 255, 0.75);
@@ -174,7 +169,7 @@ body {
 <body>
   <div class="login-container">
     <h2>ورود به سامانه</h2>
-    <form>
+    <form onsubmit="loginUser(event)">
       <label for="username">نام کاربری</label>
       <input type="text" id="username" name="username" placeholder="نام کاربری خود را وارد کنید" required>
 
@@ -201,6 +196,32 @@ body {
   <script>
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
+    }
+
+    async function loginUser(event) {
+      event.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const rememberMe = document.getElementById("rememberMe").checked;
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, rememberMe })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem("username", username);
+          window.location.href = "dashboard.html";
+        } else {
+          alert(data.message || "نام کاربری یا رمز عبور اشتباه است");
+        }
+      } catch (err) {
+        alert("خطا در ارتباط با سرور");
+      }
     }
   </script>
 </body>
