@@ -79,34 +79,26 @@ app.post("/api/register-request", async (req, res) => {
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
-  console.log(`Approve request received for phone: ${phone}`);
-
   try {
     // چک کردن وجود کاربر در PendingUser
     const pendingUser = await PendingUser.findOne({ phone });
     if (!pendingUser) {
-      console.log(`No pending user found with phone: ${phone}`);
       return res.send("⚠️ این کاربر در حالت انتظار نیست.");
     }
 
-    console.log(`Pending user found: ${name}`);
-
-    // انتقال کاربر از PendingUser به User
+    // فقط ثبت کاربر جدید در User
     await User.create({ name, phone, username, password });
 
-    // حذف کاربر از PendingUser
-    await PendingUser.deleteOne({ phone });
-
-    console.log(`User ${name} successfully approved.`);
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
-    console.error("Error during approval:", err);
+    console.error(err);
     res.status(500).send("❌ خطا در تایید ثبت‌نام.");
   }
 });
 
 // مسیر دیگر برای صفحه داشبورد (در صورت نیاز)
 app.get("/dashboard", (req, res) => {
+  // اطلاعات را از دیتابیس به صفحه داشبورد ارسال می‌کنید
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
