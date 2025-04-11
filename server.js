@@ -14,20 +14,20 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 
-// مدل کاربر (توجه به unique بودن فیلد phone)
+// مدل کاربر
 const User = mongoose.model("User", new mongoose.Schema({
   name: String,
-  phone: { type: String, unique: true, required: true },
-  username: { type: String, required: true },
-  password: { type: String, required: true },
+  phone: String,
+  username: String,
+  password: String,
 }));
 
-// مدل کاربر در حالت انتظار
-const PendingUser = mongoose.model("PendingUser", new mongoose.Schema({
+// مدل بیمار
+const Patient = mongoose.model("Patient", new mongoose.Schema({
   name: String,
-  phone: { type: String, required: true },
-  username: { type: String, required: true },
-  password: { type: String, required: true },
+  phone: String,
+  code: String,
+  visited: { type: Boolean, default: false },
 }));
 
 app.use(bodyParser.json());
@@ -35,6 +35,22 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // سرو فایل‌های استاتیک
 app.use(express.static(path.join(__dirname, "public")));
+
+// لاگین کاربر
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.json({ success: false });
+    }
+    res.json({ success: true, name: user.name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 
 // ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
@@ -65,9 +81,6 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
-    // ذخیره کاربر در PendingUser
-    await PendingUser.create({ name, phone, username, password });
-
     res.json({ message: "درخواست ثبت‌نام ارسال شد." });
   } catch (err) {
     console.error(err);
@@ -75,34 +88,21 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
-// تایید ثبت‌نام توسط ادمین
+// تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password } = req.query;
 
   try {
-    // چک کردن وجود کاربر در PendingUser
-    const pendingUser = await PendingUser.findOne({ phone });
-
-    if (!pendingUser) {
-      return res.send("⚠️ این کاربر در حالت انتظار نیست.");
-    }
-
-    // چک کردن وجود کاربر در User
-    const userExists = await User.findOne({ phone });
-    if (userExists) {
+    const exists = await User.findOne({ phone });
+    if (exists) {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // انتقال کاربر از PendingUser به User
     await User.create({ name, phone, username, password });
-
-    // حذف کاربر از PendingUser
-    await PendingUser.deleteOne({ phone });
-
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
-    console.error("Error during approval:", err);
-    res.status(500).send("❌ خطا در تایید ثبت‌نام.");
+    console.error(err);
+    res.status(500).send("❌ خطا در ثبت کاربر.");
   }
 });
 
