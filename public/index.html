@@ -1,132 +1,207 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ثبت‌نام</title>
+  <title>فرم ثبت‌نام</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
     * {
-      box-sizing: border-box;
-      direction: rtl;
-    }
-
-    body {
-      font-family: sans-serif;
-      background: #121212;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      min-height: 100vh;
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Vazirmatn', sans-serif;
     }
-
+    body {
+      background: url('/images/1.png') no-repeat center center fixed, linear-gradient(to bottom right, #dbeafe, #ddd6fe);
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
     .form-container {
-      background: #1e1e1e;
-      padding: 24px;
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
-      max-width: 500px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      max-width: 400px;
     }
-
-    h2 {
+    .form-container h2 {
       text-align: center;
-      margin-bottom: 20px;
+      color: #1f2937;
+      margin-bottom: 25px;
+      font-size: 24px;
     }
-
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #374151;
+      font-weight: bold;
+    }
     input {
       width: 100%;
       padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #444;
-      border-radius: 8px;
-      background: #2c2c2c;
-      color: #fff;
-      font-size: 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      transition: 0.3s;
     }
-
+    input:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
     button {
       width: 100%;
+      background-color: #3b82f6;
+      color: white;
       padding: 12px;
-      background: #28a745;
-      color: #fff;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 16px;
       cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
     }
-
-    button:disabled {
-      background: #666;
-      cursor: not-allowed;
+    button:hover {
+      background-color: #2563eb;
     }
-
-    .message {
-      margin-top: 16px;
-      text-align: center;
+    .error {
+      color: red;
       font-size: 14px;
-      color: #ffc107;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .login-link {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .login-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div class="form-container">
     <h2>فرم ثبت‌نام</h2>
-    <form id="registerForm">
-      <input type="text" id="name" placeholder="نام کامل" required />
-      <input type="text" id="phone" placeholder="شماره تماس" required />
-      <input type="text" id="username" placeholder="نام کاربری" required />
-      <input type="password" id="password" placeholder="رمز عبور" required />
-      <input type="text" id="fingerprint" placeholder="اثر انگشت دستگاه" required />
-      <input type="text" id="deviceId" placeholder="شناسه دستگاه" required />
-      <button type="submit">ارسال</button>
+    <form id="signup-form">
+      <label for="name">نام کامل</label>
+      <input type="text" id="name" name="name" placeholder="مثلاً سعید جمشیدی" required />
+
+      <label for="phone">شماره تماس</label>
+      <input type="tel" id="phone" name="phone" placeholder="مثلاً 09123456789" required />
+
+      <label for="username">نام کاربری</label>
+      <input type="text" id="username" name="username" placeholder="مثلاً saeed_jm" required />
+
+      <label for="password">رمز عبور</label>
+      <input type="password" id="password" name="password" placeholder="رمز دلخواه خود را وارد کنید" required />
+
+      <label for="confirm-password">تکرار رمز عبور</label>
+      <input type="password" id="confirm-password" name="confirm-password" placeholder="رمز را دوباره وارد کنید" required />
+
+      <div class="error" id="password-error">رمز عبور و تکرار آن یکسان نیستند.</div>
+
+      <button type="submit">ثبت‌نام</button>
+
+      <div class="login-link">
+        <span>قبلاً ثبت‌نام کرده‌اید؟</span>
+        <a href="login.html">وارد شوید</a>
+      </div>
     </form>
-    <div class="message" id="messageBox"></div>
   </div>
 
   <script>
-    const form = document.getElementById("registerForm");
-    const messageBox = document.getElementById("messageBox");
+    const form = document.getElementById("signup-form");
+    const password = document.getElementById("password");
+    const confirmPassword = document.getElementById("confirm-password");
+    const errorText = document.getElementById("password-error");
 
-    form.addEventListener("submit", async (e) => {
+    function generateFallbackId() {
+      return 'dev-' + Math.random().toString(36).substr(2, 10);
+    }
+
+    function getOrCreateDeviceId() {
+      let id = localStorage.getItem("deviceId");
+      if (!id) {
+        id = (crypto.randomUUID?.() || generateFallbackId());
+        localStorage.setItem("deviceId", id);
+      }
+      return id;
+    }
+
+    function getDeviceFingerprint() {
+      const fingerprintData = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+        deviceMemory: navigator.deviceMemory || 'unknown',
+        timezoneOffset: new Date().getTimezoneOffset(),
+        screenResolution: `${screen.width}x${screen.height}`,
+        colorDepth: screen.colorDepth,
+        deviceId: getOrCreateDeviceId(),
+      };
+      const raw = JSON.stringify(fingerprintData);
+      return hashString(raw);
+    }
+
+    function hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash |= 0;
+      }
+      return Math.abs(hash).toString();
+    }
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      const name = document.getElementById("name").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const fingerprint = document.getElementById("fingerprint").value.trim();
-      const deviceId = document.getElementById("deviceId").value.trim();
-
-      if (!name || !phone || !username || !password || !fingerprint || !deviceId) {
-        messageBox.innerText = "لطفاً همه فیلدها را پر کنید.";
+      if (password.value !== confirmPassword.value) {
+        errorText.style.display = "block";
+        confirmPassword.focus();
         return;
       }
 
-      messageBox.innerText = "⏳ در حال ارسال اطلاعات...";
+      errorText.style.display = "none";
+
+      const formData = {
+        name: document.getElementById("name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        username: document.getElementById("username").value.trim(),
+        password: password.value,
+        fingerprint: getDeviceFingerprint(),
+        deviceId: getOrCreateDeviceId()
+      };
+
+      // بررسی خالی نبودن فیلدها
+      for (const key in formData) {
+        if (!formData[key]) {
+          alert("لطفاً تمام فیلدها را پر کنید");
+          return;
+        }
+      }
 
       try {
-        const response = await fetch("/api/register-request", {
+        const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name, phone, username, password, fingerprint, deviceId }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
         });
 
-        const result = await response.json();
-
-        if (response.ok) {
-          messageBox.innerText = "✅ ثبت‌نام با موفقیت ارسال شد. لطفاً منتظر تأیید باشید.";
-          form.reset();
-        } else {
-          messageBox.innerText = "❌ " + (result.message || "خطایی رخ داده است.");
-        }
+        const data = await res.json();
+        alert(data.message);
       } catch (err) {
+        alert("ارسال اطلاعات با خطا مواجه شد.");
         console.error(err);
-        messageBox.innerText = "❌ خطا در اتصال به سرور.";
       }
     });
   </script>
