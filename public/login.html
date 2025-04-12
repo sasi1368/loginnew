@@ -15,7 +15,7 @@
     }
 
     body {
-      background: url('https://imgur.com/a/dFYCwF5') no-repeat center center/cover;
+      background: url('images/1.png') no-repeat center center/cover;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -24,11 +24,6 @@
       background-color: transparent;
       color: var(--text-color, #000000);
     }
-
-body {
-  background: url('images/1.png') no-repeat center center/cover;
-}
-
 
     .login-container {
       background-color: rgba(255, 255, 255, 0.75);
@@ -174,7 +169,7 @@ body {
 <body>
   <div class="login-container">
     <h2>ورود به سامانه</h2>
-    <form>
+    <form id="login-form">
       <label for="username">نام کاربری</label>
       <input type="text" id="username" name="username" placeholder="نام کاربری خود را وارد کنید" required>
 
@@ -202,6 +197,47 @@ body {
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
     }
+
+    // ارسال اطلاعات برای ورود
+    document.getElementById("login-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      const formData = {
+        username,
+        password
+      };
+
+      try {
+        const res = await fetch("http://localhost:3000/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // ورود موفق
+          alert(`خوش آمدید ${data.name}`);
+          window.location.href = "/dashboard.html"; // هدایت به داشبورد
+        } else {
+          // بررسی پیغام خطا
+          if (data.message === "درخواست شما هنوز تایید نشده است.") {
+            alert("درخواست شما هنوز تایید نشده است.");
+          } else {
+            alert("نام کاربری یا رمز عبور اشتباه است.");
+          }
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        alert("خطا در اتصال به سرور.");
+      }
+    });
   </script>
 </body>
 </html>
