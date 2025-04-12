@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>فرم ثبت‌نام</title>
+  <title>فرم ثبت‌نام کامل</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
     * {
@@ -13,7 +13,7 @@
       font-family: 'Vazirmatn', sans-serif;
     }
     body {
-      background: url('/images/1.png') no-repeat center center fixed, linear-gradient(to bottom right, #dbeafe, #ddd6fe);
+      background: linear-gradient(to bottom right, #dbeafe, #ddd6fe), url('/images/1.png') no-repeat center center fixed;
       background-size: cover;
       display: flex;
       align-items: center;
@@ -84,6 +84,10 @@
       color: #3b82f6;
       text-decoration: none;
       font-weight: bold;
+      margin-right: 5px;
+    }
+    .login-link a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -123,14 +127,15 @@
     const confirmPassword = document.getElementById("confirm-password");
     const errorText = document.getElementById("password-error");
 
-    function generateFallbackId() {
-      return 'dev-' + Math.random().toString(36).substr(2, 10);
+    function generateUUID() {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      return Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
 
     function getOrCreateDeviceId() {
       let id = localStorage.getItem("deviceId");
       if (!id) {
-        id = (crypto.randomUUID?.() || generateFallbackId());
+        id = generateUUID();
         localStorage.setItem("deviceId", id);
       }
       return id;
@@ -148,18 +153,24 @@
         colorDepth: screen.colorDepth,
         deviceId: getOrCreateDeviceId(),
       };
+
       const raw = JSON.stringify(fingerprintData);
       return hashString(raw);
     }
 
     function hashString(str) {
       let hash = 0;
+      if (str.length === 0) return hash.toString();
       for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
         hash = (hash << 5) - hash + char;
         hash |= 0;
       }
       return Math.abs(hash).toString();
+    }
+
+    function generateUniqueCode() {
+      return Math.random().toString(36).slice(2, 11);
     }
 
     form.addEventListener("submit", async function (e) {
@@ -173,21 +184,24 @@
 
       errorText.style.display = "none";
 
+      const fingerprint = getDeviceFingerprint();
+      const uniqueCode = generateUniqueCode();
+      const deviceId = getOrCreateDeviceId();
+
       const formData = {
         name: document.getElementById("name").value.trim(),
         phone: document.getElementById("phone").value.trim(),
         username: document.getElementById("username").value.trim(),
         password: password.value,
-        fingerprint: getDeviceFingerprint(),
-        deviceId: getOrCreateDeviceId()
+        code: uniqueCode,
+        fingerprint,
+        deviceId
       };
 
-      // بررسی خالی نبودن فیلدها
-      for (const key in formData) {
-        if (!formData[key]) {
-          alert("لطفاً تمام فیلدها را پر کنید");
-          return;
-        }
+      // بررسی خالی بودن فیلدها (بیشتر برای اطمینان در گوشی‌ها)
+      if (!formData.name || !formData.phone || !formData.username || !formData.password) {
+        alert("لطفاً همه فیلدها را پر کنید.");
+        return;
       }
 
       try {
@@ -197,11 +211,16 @@
           body: JSON.stringify(formData),
         });
 
+        if (!res.ok) {
+          const errData = await res.json();
+          alert(errData.message || "خطا در ارسال اطلاعات");
+          return;
+        }
+
         const data = await res.json();
         alert(data.message);
       } catch (err) {
-        alert("ارسال اطلاعات با خطا مواجه شد.");
-        console.error(err);
+        alert("ارتباط با سرور برقرار نشد.");
       }
     });
   </script>
