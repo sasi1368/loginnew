@@ -13,21 +13,27 @@
       font-family: 'Vazirmatn', sans-serif;
     }
     body {
-      background: linear-gradient(to bottom right, #dbeafe, #ddd6fe), url('/images/1.png') no-repeat center center fixed;
+      background: url('images/1.png') no-repeat center center fixed, linear-gradient(to bottom right, #dbeafe, #ddd6fe);
       background-size: cover;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
+      transition: background-color 0.3s;
+    }
+    body.dark-mode {
+      background: #1a202c;
+      color: #f7fafc;
     }
     .form-container {
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.8);
       padding: 20px;
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 400px;
+      position: relative;
     }
     .form-container h2 {
       text-align: center;
@@ -89,6 +95,22 @@
     .login-link a:hover {
       text-decoration: underline;
     }
+    /* Toast Styles */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #3b82f6;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .toast.show {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -121,21 +143,19 @@
     </form>
   </div>
 
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
   <script>
     const form = document.getElementById("signup-form");
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirm-password");
     const errorText = document.getElementById("password-error");
 
-    function generateUUID() {
-      if (crypto.randomUUID) return crypto.randomUUID();
-      return Math.random().toString(36).slice(2) + Date.now().toString(36);
-    }
-
     function getOrCreateDeviceId() {
       let id = localStorage.getItem("deviceId");
       if (!id) {
-        id = generateUUID();
+        id = crypto.randomUUID();
         localStorage.setItem("deviceId", id);
       }
       return id;
@@ -153,7 +173,6 @@
         colorDepth: screen.colorDepth,
         deviceId: getOrCreateDeviceId(),
       };
-
       const raw = JSON.stringify(fingerprintData);
       return hashString(raw);
     }
@@ -170,7 +189,16 @@
     }
 
     function generateUniqueCode() {
-      return Math.random().toString(36).slice(2, 11);
+      return Math.random().toString(36).substr(2, 9);
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 3000);
     }
 
     form.addEventListener("submit", async function (e) {
@@ -186,23 +214,16 @@
 
       const fingerprint = getDeviceFingerprint();
       const uniqueCode = generateUniqueCode();
-      const deviceId = getOrCreateDeviceId();
 
       const formData = {
-        name: document.getElementById("name").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
-        username: document.getElementById("username").value.trim(),
+        name: document.getElementById("name").value,
+        phone: document.getElementById("phone").value,
+        username: document.getElementById("username").value,
         password: password.value,
         code: uniqueCode,
-        fingerprint,
-        deviceId
+        fingerprint: fingerprint,
+        deviceId: getOrCreateDeviceId(),
       };
-
-      // بررسی خالی بودن فیلدها (بیشتر برای اطمینان در گوشی‌ها)
-      if (!formData.name || !formData.phone || !formData.username || !formData.password) {
-        alert("لطفاً همه فیلدها را پر کنید.");
-        return;
-      }
 
       try {
         const res = await fetch("https://loginnew-o99m.onrender.com/api/register-request", {
@@ -211,16 +232,10 @@
           body: JSON.stringify(formData),
         });
 
-        if (!res.ok) {
-          const errData = await res.json();
-          alert(errData.message || "خطا در ارسال اطلاعات");
-          return;
-        }
-
         const data = await res.json();
-        alert(data.message);
+        showToast(data.message);
       } catch (err) {
-        alert("ارتباط با سرور برقرار نشد.");
+        showToast("ارسال اطلاعات با خطا مواجه شد");
       }
     });
   </script>
