@@ -22,8 +22,8 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, unique: true },
   username: String,
   password: String,
-  fingerprint: String, // اضافه کردن فیلد fingerprint
-  deviceId: String,    // اضافه کردن فیلد deviceId
+  fingerprint: String,
+  deviceId: String,
 });
 
 const PendingUserSchema = new mongoose.Schema({
@@ -31,8 +31,8 @@ const PendingUserSchema = new mongoose.Schema({
   phone: { type: String, unique: true },
   username: String,
   password: String,
-  fingerprint: String, // اضافه کردن فیلد fingerprint
-  deviceId: String,    // اضافه کردن فیلد deviceId
+  fingerprint: String,
+  deviceId: String,
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -50,13 +50,20 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.json({ success: false });
+    if (user) {
+      return res.json({ success: true, name: user.name });
     }
-    res.json({ success: true, name: user.name });
+
+    const pendingUser = await PendingUser.findOne({ username, password });
+    if (pendingUser) {
+      return res.json({ success: false, message: "حساب شما هنوز تایید نشده است." });
+    }
+
+    return res.json({ success: false, message: "نام کاربری یا رمز عبور اشتباه است." });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "خطای سرور" });
   }
 });
 
@@ -77,15 +84,13 @@ app.post("/api/register-request", async (req, res) => {
     📛 نام: ${name}
     📱 شماره: ${phone}
     👤 نام کاربری: ${username}
-  
+
     برای تأیید، روی دکمه زیر کلیک کنید:
   `;
 
   try {
-    // ثبت‌نام در PendingUser
     await PendingUser.create({ name, phone, username, password, fingerprint, deviceId });
 
-    // ارسال پیام به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
       chat_id: chatId,
       text: message,
@@ -113,7 +118,6 @@ app.get("/api/approve", async (req, res) => {
       return res.send("⚠️ این کاربر قبلاً ثبت‌نام کرده است.");
     }
 
-    // انتقال از PendingUser به User
     await PendingUser.deleteOne({ phone });
     await User.create({ name, phone, username, password, fingerprint, deviceId });
     res.send("✅ کاربر با موفقیت ثبت شد.");
