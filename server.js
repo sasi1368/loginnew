@@ -19,16 +19,20 @@ mongoose.connect(process.env.MONGO_URI, {
 // مدل کاربر
 const UserSchema = new mongoose.Schema({
   name: String,
-  phone: { type: String }, // حذف unique
+  phone: { type: String, unique: true },
   username: String,
   password: String,
+  fingerprint: String, // اضافه کردن فیلد fingerprint
+  deviceId: String,    // اضافه کردن فیلد deviceId
 });
 
 const PendingUserSchema = new mongoose.Schema({
   name: String,
-  phone: { type: String }, // حذف unique
+  phone: { type: String, unique: true },
   username: String,
   password: String,
+  fingerprint: String, // اضافه کردن فیلد fingerprint
+  deviceId: String,    // اضافه کردن فیلد deviceId
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -58,15 +62,15 @@ app.post("/api/login", async (req, res) => {
 
 // ثبت درخواست ثبت‌نام و ارسال به تلگرام
 app.post("/api/register-request", async (req, res) => {
-  const { name, phone, username, password } = req.body;
+  const { name, phone, username, password, fingerprint, deviceId } = req.body;
 
-  if (!name || !phone || !username || !password) {
+  if (!name || !phone || !username || !password || !fingerprint || !deviceId) {
     return res.status(400).json({ message: "لطفاً همه فیلدها را پر کنید" });
   }
 
   const token = process.env.BOT_TOKEN;
   const chatId = process.env.ADMIN_CHAT_ID;
-  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  const approveUrl = `${process.env.SERVER_URL}/api/approve?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&fingerprint=${encodeURIComponent(fingerprint)}&deviceId=${encodeURIComponent(deviceId)}`;
 
   const message = `
     👤 درخواست ثبت‌نام جدید:
@@ -79,7 +83,7 @@ app.post("/api/register-request", async (req, res) => {
 
   try {
     // ثبت‌نام در PendingUser
-    await PendingUser.create({ name, phone, username, password });
+    await PendingUser.create({ name, phone, username, password, fingerprint, deviceId });
 
     // ارسال پیام به تلگرام
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -101,7 +105,7 @@ app.post("/api/register-request", async (req, res) => {
 
 // تأیید ثبت‌نام توسط ادمین
 app.get("/api/approve", async (req, res) => {
-  const { name, phone, username, password } = req.query;
+  const { name, phone, username, password, fingerprint, deviceId } = req.query;
 
   try {
     const exists = await User.findOne({ phone });
@@ -111,7 +115,7 @@ app.get("/api/approve", async (req, res) => {
 
     // انتقال از PendingUser به User
     await PendingUser.deleteOne({ phone });
-    await User.create({ name, phone, username, password });
+    await User.create({ name, phone, username, password, fingerprint, deviceId });
     res.send("✅ کاربر با موفقیت ثبت شد.");
   } catch (err) {
     console.error(err);
