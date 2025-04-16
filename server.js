@@ -101,10 +101,10 @@ app.post("/api/register-request", async (req, res) => {
       },
     });
 
-    res.json({ message: "درخواست ثبت‌نام ارسال شد." });
+    res.json({ message: "درخواست ثبت‌نام به ادمین ارسال شد." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "خطا در ارسال به تلگرام" });
+    res.status(500).json({ message: "درخواست ثبت‌نام قبلا به ادمین ارسال شده است." });
   }
 });
 
