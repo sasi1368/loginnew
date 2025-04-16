@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>داشبورد کاربر</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
     body {
       margin: 0;
       font-family: 'Vazirmatn', sans-serif;
@@ -13,17 +15,19 @@
       min-height: 100vh;
       color: #fff;
       padding: 20px;
+      transition: background-color 0.3s ease;
     }
 
     .dashboard-container {
       background-color: rgba(0, 0, 0, 0.6);
       border-radius: 16px;
       padding: 30px;
-      max-width: 500px;
+      max-width: 700px;
       margin: 40px auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    h2 {
+    h2, h3 {
       text-align: center;
       margin-bottom: 20px;
     }
@@ -50,22 +54,84 @@
       border-radius: 10px;
       margin-top: 20px;
       cursor: pointer;
+      font-size: 16px;
     }
 
-    .qrcode {
-      text-align: center;
-      margin-top: 20px;
+    button:hover {
+      background-color: #2563eb;
     }
 
-    .stats {
-      text-align: center;
+    .qrcode, .stats, .lists {
       margin-top: 30px;
+      text-align: center;
+    }
+
+    #patientCode {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .top-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .dark-mode-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .list-container {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      text-align: right;
+    }
+
+    .list-item {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 0;
+    }
+
+    /* حالت تاریک */
+    body.dark-mode {
+      background-color: #121212;
+      color: #fff;
+    }
+
+    .dark-mode .dashboard-container {
+      background-color: rgba(30, 30, 30, 0.8);
+    }
+
+    .dark-mode input {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .dark-mode button {
+      background-color: #4c6ef5;
+    }
+
+    .dark-mode button:hover {
+      background-color: #3a55d4;
     }
   </style>
 </head>
 <body>
   <div class="dashboard-container">
-    <h2 id="welcome">خوش آمدی!</h2>
+    <div class="top-controls">
+      <h2 id="welcome">خوش آمدی!</h2>
+      <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+    </div>
 
     <label for="patientName">نام بیمار:</label>
     <input type="text" id="patientName" placeholder="مثلاً سعید جمشیدی" required />
@@ -76,23 +142,41 @@
     <button onclick="submitPatient()">ثبت بیمار</button>
 
     <div class="qrcode" id="qrcode"></div>
+    <p id="patientCode"></p>
 
     <div class="stats">
-      <span id="realVisits">تعداد مراجعه به مرکز تصویربرداری ۰</span>
+      <span id="realVisits">در حال بارگذاری آمار مراجعه...</span>
+    </div>
+
+    <div class="lists">
+      <h3>بیماران ارسال‌شده</h3>
+      <div class="list-container" id="submittedPatients"></div>
+
+      <h3>بیماران تأیید شده</h3>
+      <div class="list-container" id="approvedPatients"></div>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
-    const userName = localStorage.getItem("username") || "کاربر";
-    document.getElementById("welcome").innerText = `خوش آمدی ${userName}`;
+    const userName = localStorage.getItem("username");
+    if (!userName) {
+      alert("لطفاً ابتدا وارد شوید.");
+      window.location.href = "login.html";
+    } else {
+      document.getElementById("welcome").innerText = `خوش آمدی ${userName}`;
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
 
     async function submitPatient() {
       const name = document.getElementById("patientName").value;
       const phone = document.getElementById("patientPhone").value;
 
       if (!name || !phone) {
-        alert("لطفاً نام و شماره را وارد کنید.");
+        alert("لطفاً نام و شماره تماس را وارد کنید.");
         return;
       }
 
@@ -109,12 +193,14 @@
         if (data.success) {
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), code);
+          document.getElementById("patientCode").innerText = `کد بیمار: ${code}`;
           updateStats();
+          loadPatientLists();
         } else {
-          alert(data.message || "خطا در ثبت");
+          alert(data.message || "خطا در ثبت اطلاعات بیمار.");
         }
       } catch (err) {
-        alert("خطا در اتصال به سرور");
+        alert("خطا در اتصال به سرور.");
       }
     }
 
@@ -122,13 +208,39 @@
       try {
         const res = await fetch("/api/patients/stats");
         const data = await res.json();
-        document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی به مرکز تصویربرداری: ${data.visited}`;
-      } catch (err) {
-        console.error("خطا در دریافت آمار");
+        document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی: ${data.visited}`;
+      } catch {
+        document.getElementById("realVisits").innerText = "خطا در دریافت آمار.";
+      }
+    }
+
+    async function loadPatientLists() {
+      try {
+        const res = await fetch("/api/patients/list");
+        const data = await res.json();
+
+        const submittedContainer = document.getElementById("submittedPatients");
+        const approvedContainer = document.getElementById("approvedPatients");
+
+        submittedContainer.innerHTML = "";
+        approvedContainer.innerHTML = "";
+
+        data.forEach(p => {
+          const item = `<div class="list-item">${p.name} - ${p.phone} - ${p.code}</div>`;
+          if (p.approved) {
+            approvedContainer.innerHTML += item;
+          } else {
+            submittedContainer.innerHTML += item;
+          }
+        });
+      } catch {
+        document.getElementById("submittedPatients").innerText = "خطا در بارگذاری.";
+        document.getElementById("approvedPatients").innerText = "خطا در بارگذاری.";
       }
     }
 
     updateStats();
+    loadPatientLists();
   </script>
 </body>
 </html>
