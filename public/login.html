@@ -167,6 +167,7 @@
   </style>
 </head>
 <body>
+
   <div class="login-container">
     <h2>ورود به سامانه</h2>
     <form id="login-form">
@@ -193,44 +194,48 @@
     </form>
   </div>
 
+  <!-- 🔽 محلی برای نمایش داشبورد پس از لاگین -->
+  <div id="dashboard-container" style="display: none; width: 100%;"></div>
+
   <script>
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
     }
 
-    // ارسال اطلاعات برای ورود
-    document.getElementById("login-form").addEventListener("submit", async function(e) {
+    document.getElementById("login-form").addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
-      const formData = {
-        username,
-        password
-      };
+      const formData = { username, password };
 
       try {
         const res = await fetch("https://loginnew-o99m.onrender.com/api/login", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
 
         const data = await res.json();
 
         if (data.success) {
-          // ورود موفق
           alert(`خوش آمدید ${data.name}`);
-          window.location.href = "/dashboard.html"; // هدایت به داشبورد
+
+          // مخفی کردن فرم لاگین
+          document.querySelector(".login-container").style.display = "none";
+
+          // لود کردن داشبورد
+          const dashboardContainer = document.getElementById("dashboard-container");
+          const response = await fetch("dashboard.html");
+          const html = await response.text();
+          dashboardContainer.innerHTML = html;
+          dashboardContainer.style.display = "block";
         } else {
-          // بررسی پیغام خطا
           if (data.message === "درخواست شما هنوز تایید نشده است.") {
             alert("درخواست شما هنوز تایید نشده است.");
           } else {
-            alert(" نام کاربری یا رمز عبور اشتباه است یا درخواست شما هنوز تایید نشده است");
+            alert("نام کاربری یا رمز عبور اشتباه است یا درخواست شما هنوز تایید نشده است");
           }
         }
       } catch (err) {
@@ -239,5 +244,6 @@
       }
     });
   </script>
+
 </body>
 </html>
