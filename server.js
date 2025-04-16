@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
+const xlsx = require("xlsx"); // برای ایجاد فایل اکسل
 require("dotenv").config();
 
 const app = express();
@@ -147,10 +148,78 @@ app.post("/api/patients", async (req, res) => {
 
   try {
     const newPatient = await Patient.create({ name, phone, code, registeredBy }); // ذخیره registeredBy
+
+    // ارسال اطلاعات بیمار به تلگرام
+    const token = process.env.BOT_TOKEN;
+    const chatId = process.env.ADMIN_CHAT_ID;
+    const approveUrl = `${process.env.SERVER_URL}/api/approve-patient?patientId=${newPatient._id}`;
+    
+    const message = `
+👤 بیمار جدید:
+📛 نام: ${newPatient.name}
+📱 شماره: ${newPatient.phone}
+🆔 کد: ${newPatient.code}
+
+برای تأیید، روی دکمه زیر کلیک کنید:
+    `;
+
+    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+      chat_id: chatId,
+      text: message,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "✅ تأیید بیمار", url: approveUrl }],
+        ],
+      },
+    });
+
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "خطا در ذخیره بیمار" });
+  }
+});
+
+// تأیید بیمار توسط ادمین و ذخیره در فایل اکسل
+app.get("/api/approve-patient", async (req, res) => {
+  const { patientId } = req.query;
+
+  try {
+    const patient = await Patient.findById(patientId);
+    if (!patient) {
+      return res.status(404).send("❌ بیمار پیدا نشد.");
+    }
+
+    // تغییر وضعیت تأیید بیمار
+    patient.approved = true;
+    await patient.save();
+
+    // ذخیره بیمار در فایل اکسل
+    const wb = xlsx.utils.book_new();
+    const wsData = [
+      ["نام", "شماره", "کد", "ثبت‌کننده", "تاریخ ثبت"]
+    ];
+
+    const newPatientRow = [
+      patient.name,
+      patient.phone,
+      patient.code,
+      patient.registeredBy,
+      patient.createdAt.toLocaleString(),
+    ];
+
+    wsData.push(newPatientRow);
+
+    const ws = xlsx.utils.aoa_to_sheet(wsData);
+    xlsx.utils.book_append_sheet(wb, ws, "Patients");
+
+    const filePath = path.join(__dirname, "patients.xlsx");
+    xlsx.writeFile(wb, filePath);
+
+    res.send("✅ بیمار با موفقیت تایید و ذخیره شد.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ خطا در تایید بیمار.");
   }
 });
 
