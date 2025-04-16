@@ -102,7 +102,6 @@
       padding: 8px 0;
     }
 
-    /* حالت تاریک */
     body.dark-mode {
       background-color: #121212;
       color: #fff;
@@ -181,12 +180,13 @@
       }
 
       const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
+      const username = localStorage.getItem("username");
 
       try {
         const res = await fetch("/api/patients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, code }),
+          body: JSON.stringify({ name, phone, code, createdBy: username }),
         });
 
         const data = await res.json();
@@ -226,7 +226,7 @@
         approvedContainer.innerHTML = "";
 
         data.forEach(p => {
-          const item = `<div class="list-item">${p.name} - ${p.phone} - ${p.code}</div>`;
+          const item = `<div class="list-item">${p.name} - ${p.phone} - ${p.code} - ثبت شده توسط: ${p.createdBy}</div>`;
           if (p.approved) {
             approvedContainer.innerHTML += item;
           } else {
