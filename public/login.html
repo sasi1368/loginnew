@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ورود به سامانه</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
     * {
       margin: 0;
       padding: 0;
@@ -187,11 +189,12 @@
 
       <div class="signup-link">
         <span>ثبت‌نام نکرده‌اید؟</span>
-        <a href="signup.html">ثبت‌نام کنید</a>
+        <a href="index.html">ثبت‌نام کنید</a>
       </div>
     </form>
   </div>
 
+  <!-- 🔽 محلی برای نمایش داشبورد پس از لاگین -->
   <div id="dashboard-container" style="display: none; width: 100%;"></div>
 
   <script>
@@ -208,7 +211,7 @@
       const formData = { username, password };
 
       try {
-        const res = await fetch("https://your-backend-api.com/api/login", {
+        const res = await fetch("https://loginnew-o99m.onrender.com/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
