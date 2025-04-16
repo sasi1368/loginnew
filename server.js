@@ -41,6 +41,7 @@ const PatientSchema = new mongoose.Schema({
   code: String,
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
+  registeredBy: String, // نام فرد ثبت‌کننده
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -138,14 +139,14 @@ app.get("/api/approve", async (req, res) => {
 
 // ثبت بیمار جدید
 app.post("/api/patients", async (req, res) => {
-  const { name, phone, code } = req.body;
+  const { name, phone, code, registeredBy } = req.body; // دریافت registeredBy
 
-  if (!name || !phone || !code) {
+  if (!name || !phone || !code || !registeredBy) {
     return res.status(400).json({ success: false, message: "همه فیلدها الزامی است." });
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code });
+    const newPatient = await Patient.create({ name, phone, code, registeredBy }); // ذخیره registeredBy
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
