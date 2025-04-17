@@ -6,202 +6,85 @@
   <title>ورود به سامانه</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+      margin: 0; padding: 0; box-sizing: border-box;
       font-family: 'Vazirmatn', sans-serif;
     }
-
     body {
       background: url('images/1.png') no-repeat center center/cover;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      background-color: transparent;
-      color: var(--text-color, #000000);
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; color: var(--text-color, #000);
     }
-
     .login-container {
-      background-color: rgba(255, 255, 255, 0.75);
-      padding: 30px 25px;
-      border-radius: 20px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 30px; border-radius: 20px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
-
-    .login-container h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      font-size: 24px;
-      color: var(--text-color, #1f2937);
+    h2 { text-align: center; margin-bottom: 20px; }
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    input {
+      width: 100%; padding: 12px; margin-top: 6px;
+      margin-bottom: 16px; border-radius: 8px; border: 1px solid #ccc;
     }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--label-color, #374151);
-      font-weight: bold;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      margin-bottom: 16px;
-      font-size: 15px;
-      transition: border-color 0.3s;
-    }
-
-    input:focus {
-      border-color: #3b82f6;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    }
-
     button[type="submit"] {
-      width: 100%;
-      background-color: #3b82f6;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.3s;
+      width: 100%; padding: 12px; background-color: #3b82f6;
+      color: #fff; border: none; border-radius: 8px;
+      font-size: 16px; cursor: pointer;
     }
-
-    button[type="submit"]:hover {
-      background-color: #2563eb;
-    }
-
-    .signup-link {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 14px;
-    }
-
-    .signup-link a {
-      color: #3b82f6;
-      text-decoration: none;
-      font-weight: bold;
-      margin-right: 5px;
-    }
-
-    .signup-link a:hover {
-      text-decoration: underline;
-    }
-
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .checkbox-remember {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-    }
-
-    .checkbox-remember input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      margin-left: 5px;
-    }
-
+    button:hover { background-color: #2563eb; }
     .dark-mode-btn {
-      width: auto;
-      height: 28px;
-      background-color: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 20px;
-      color: var(--text-color, #000000);
+      background: none; border: none; font-size: 20px;
+      float: left; cursor: pointer;
     }
-
+    .checkbox-container {
+      display: flex; justify-content: space-between; align-items: center;
+    }
     body.dark-mode {
-      --background-color: transparent;
-      --text-color: #ffffff;
-      --label-color: #e5e5e5;
+      --text-color: #fff;
+      background-color: #222;
     }
-
-    .dark-mode .login-container {
-      background-color: rgba(30, 30, 30, 0.75);
+    body.dark-mode input {
+      background-color: #333; color: #fff;
+      border: 1px solid #555;
     }
-
-    .dark-mode input {
-      background-color: #333;
-      color: #fff;
-      border-color: #444;
-    }
-
-    .dark-mode button[type="submit"] {
-      background-color: #4c6ef5;
-    }
-
-    .dark-mode button[type="submit"]:hover {
-      background-color: #3a55d4;
-    }
-
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 20px;
-      }
-
-      input, button {
-        font-size: 14px;
-      }
-
-      .dark-mode-btn {
-        font-size: 20px;
-      }
+    body.dark-mode .login-container {
+      background-color: rgba(40, 40, 40, 0.9);
     }
   </style>
 </head>
 <body>
-
   <div class="login-container">
     <h2>ورود به سامانه</h2>
     <form id="login-form">
-      <label for="username">نام کاربری</label>
-      <input type="text" id="username" name="username" placeholder="نام کاربری خود را وارد کنید" required>
+      <label for="username">نام کاربری:</label>
+      <input type="text" id="username" required />
 
-      <label for="password">رمز عبور</label>
-      <input type="password" id="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+      <label for="password">رمز عبور:</label>
+      <input type="password" id="password" required />
 
       <div class="checkbox-container">
-        <div class="checkbox-remember">
-          <input type="checkbox" id="rememberMe">
-          <label for="rememberMe">مرا به خاطر بسپار</label>
-        </div>
+        <label><input type="checkbox" id="rememberMe" /> مرا به خاطر بسپار</label>
         <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
       </div>
 
       <button type="submit">ورود</button>
-
-      <div class="signup-link">
-        <span>ثبت‌نام نکرده‌اید؟</span>
-        <a href="index.html">ثبت‌نام کنید</a>
-      </div>
     </form>
   </div>
 
   <script>
     function toggleDarkMode() {
-      document.body.classList.toggle('dark-mode');
+      document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+    }
+
+    // Set dark mode on load if saved
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark-mode");
     }
 
     document.getElementById("login-form").addEventListener("submit", async function (e) {
       e.preventDefault();
-
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
@@ -217,33 +100,15 @@
         const data = await res.json();
 
         if (data.success) {
-          alert(`خوش آمدید ${data.name}`);
-
-          // ذخیره اطلاعات کاربر در LocalStorage
-          localStorage.setItem('username', data.name);
-
-          // مخفی کردن فرم لاگین
-          document.querySelector(".login-container").style.display = "none";
-
-          // لود کردن داشبورد
-          const dashboardContainer = document.getElementById("dashboard-container");
-          const response = await fetch("dashboard.html");
-          const html = await response.text();
-          dashboardContainer.innerHTML = html;
-          dashboardContainer.style.display = "block";
+          localStorage.setItem("username", data.name);
+          window.location.href = "dashboard.html";  // انتقال به داشبورد
         } else {
-          if (data.message === "درخواست شما هنوز تایید نشده است.") {
-            alert("درخواست شما هنوز تایید نشده است.");
-          } else {
-            alert("نام کاربری یا رمز عبور اشتباه است یا درخواست شما هنوز تایید نشده است");
-          }
+          alert(data.message || "نام کاربری یا رمز عبور اشتباه است.");
         }
       } catch (err) {
-        console.error("Error:", err);
         alert("خطا در اتصال به سرور.");
       }
     });
   </script>
-
 </body>
 </html>
