@@ -5,7 +5,6 @@
   <title>داشبورد کاربر</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-
     body {
       margin: 0;
       font-family: 'Vazirmatn', sans-serif;
@@ -15,9 +14,7 @@
       min-height: 100vh;
       color: #fff;
       padding: 20px;
-      transition: background-color 0.3s ease;
     }
-
     .dashboard-container {
       background-color: rgba(0, 0, 0, 0.6);
       border-radius: 16px;
@@ -26,67 +23,30 @@
       margin: 40px auto;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
-
-    h2, h3 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-top: 15px;
-    }
-
+    h2, h3 { text-align: center; margin-bottom: 20px; }
+    label { display: block; margin-top: 15px; }
     input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      margin-top: 5px;
+      width: 100%; padding: 10px; border-radius: 10px;
+      border: none; margin-top: 5px;
     }
-
     button {
-      width: 100%;
-      background-color: #3b82f6;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      margin-top: 20px;
-      cursor: pointer;
-      font-size: 16px;
+      width: 100%; background-color: #3b82f6; color: white;
+      padding: 12px; border: none; border-radius: 10px;
+      margin-top: 20px; cursor: pointer; font-size: 16px;
     }
-
-    button:hover {
-      background-color: #2563eb;
-    }
-
-    .qrcode, .stats, .lists {
-      margin-top: 30px;
-      text-align: center;
-    }
-
+    button:hover { background-color: #2563eb; }
+    .qrcode, .stats, .lists { margin-top: 30px; text-align: center; }
     #patientCode {
-      margin-top: 10px;
-      font-weight: bold;
-      color: #facc15;
+      margin-top: 10px; font-weight: bold; color: #facc15;
     }
-
     .top-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 15px;
     }
-
     .dark-mode-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 20px;
-      cursor: pointer;
+      background: none; border: none; color: #fff;
+      font-size: 20px; cursor: pointer;
     }
-
     .list-container {
       margin-top: 15px;
       background: rgba(255, 255, 255, 0.1);
@@ -96,31 +56,20 @@
       overflow-y: auto;
       text-align: right;
     }
-
     .list-item {
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 8px 0;
     }
-
-    /* حالت تاریک */
     body.dark-mode {
-      background-color: #121212;
-      color: #fff;
+      background-color: #121212; color: #fff;
     }
-
     .dark-mode .dashboard-container {
       background-color: rgba(30, 30, 30, 0.8);
     }
-
-    .dark-mode input {
-      background-color: #333;
-      color: #fff;
-    }
-
+    .dark-mode input { background-color: #333; color: #fff; }
     .dark-mode button {
       background-color: #4c6ef5;
     }
-
     .dark-mode button:hover {
       background-color: #3a55d4;
     }
@@ -159,12 +108,14 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
-    const userName = localStorage.getItem("username");
-    if (!userName) {
+    const username = localStorage.getItem("username");
+    const name = localStorage.getItem("name");
+
+    if (!username || !name) {
       alert("لطفاً ابتدا وارد شوید.");
       window.location.href = "login.html";
     } else {
-      document.getElementById("welcome").innerText = `خوش آمدی ${userName}`;
+      document.getElementById("welcome").innerText = `خوش آمدی ${name}`;
     }
 
     function toggleDarkMode() {
@@ -172,12 +123,10 @@
     }
 
     async function submitPatient() {
-      const name = document.getElementById("patientName").value;
-      const phone = document.getElementById("patientPhone").value;
-
-      if (!name || !phone) {
-        alert("لطفاً نام و شماره تماس را وارد کنید.");
-        return;
+      const patientName = document.getElementById("patientName").value;
+      const patientPhone = document.getElementById("patientPhone").value;
+      if (!patientName || !patientPhone) {
+        return alert("لطفاً نام و شماره تماس را وارد کنید.");
       }
 
       const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -186,7 +135,12 @@
         const res = await fetch("/api/patients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, code }),
+          body: JSON.stringify({
+            name: patientName,
+            phone: patientPhone,
+            code,
+            username,
+          }),
         });
 
         const data = await res.json();
@@ -197,10 +151,11 @@
           updateStats();
           loadPatientLists();
         } else {
-          alert(data.message || "خطا در ثبت اطلاعات بیمار.");
+          alert(data.message || "خطا در ثبت بیمار");
         }
       } catch (err) {
-        alert("خطا در اتصال به سرور.");
+        console.error(err);
+        alert("خطا در اتصال به سرور");
       }
     }
 
@@ -208,7 +163,8 @@
       try {
         const res = await fetch("/api/patients/stats");
         const data = await res.json();
-        document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی: ${data.visited}`;
+        document.getElementById("realVisits").innerText =
+          `تعداد مراجعه واقعی: ${data.visited}`;
       } catch {
         document.getElementById("realVisits").innerText = "خطا در دریافت آمار.";
       }
@@ -216,32 +172,26 @@
 
     async function loadPatientLists() {
       try {
-        const res = await fetch("/api/patients/list");
-        const patients = await res.json();
-        const submittedList = document.getElementById("submittedPatients");
-        const approvedList = document.getElementById("approvedPatients");
+        const res = await fetch(`/api/patients/list?username=${username}`);
+        const data = await res.json();
+        const submitted = document.getElementById("submittedPatients");
+        const approved = document.getElementById("approvedPatients");
+        submitted.innerHTML = "";
+        approved.innerHTML = "";
 
-        submittedList.innerHTML = '';
-        approvedList.innerHTML = '';
-
-        patients.forEach(patient => {
-          const listItem = document.createElement("div");
-          listItem.className = "list-item";
-          listItem.innerText = `${patient.name} - ${patient.phone}`;
-          
-          if (patient.approved) {
-            approvedList.appendChild(listItem);
-          } else {
-            submittedList.appendChild(listItem);
-          }
+        data.forEach(p => {
+          const html = `<div class="list-item">${p.name} - ${p.phone} - ${p.code}</div>`;
+          if (p.approved) approved.innerHTML += html;
+          else submitted.innerHTML += html;
         });
       } catch {
-        alert("خطا در بارگذاری لیست بیماران.");
+        document.getElementById("submittedPatients").innerText = "خطا در بارگذاری";
+        document.getElementById("approvedPatients").innerText = "خطا در بارگذاری";
       }
     }
 
-    loadPatientLists();
     updateStats();
+    loadPatientLists();
   </script>
 </body>
 </html>
