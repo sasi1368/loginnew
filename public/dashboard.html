@@ -22,6 +22,7 @@
       max-width: 700px;
       margin: 40px auto;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      position: relative;
     }
     h2, h3 { text-align: center; margin-bottom: 20px; }
     label { display: block; margin-top: 15px; }
@@ -47,6 +48,10 @@
       background: none; border: none; color: #fff;
       font-size: 20px; cursor: pointer;
     }
+    .logout-btn {
+      background: none; border: none; color: #fff;
+      font-size: 18px; cursor: pointer;
+    }
     .list-container {
       margin-top: 15px;
       background: rgba(255, 255, 255, 0.1);
@@ -68,7 +73,7 @@
       background: none;
       border: none;
       color: #fff;
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
     }
     .list-item button.edit {
@@ -99,6 +104,7 @@
     <div class="top-controls">
       <h2 id="welcome">خوش آمدی!</h2>
       <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+      <button class="logout-btn" onclick="logout()">خروج</button>
     </div>
 
     <label for="patientName">نام بیمار:</label>
@@ -139,6 +145,12 @@
 
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
+    }
+
+    function logout() {
+      localStorage.removeItem("username");
+      localStorage.removeItem("name");
+      window.location.href = "login.html";
     }
 
     async function submitPatient() {
