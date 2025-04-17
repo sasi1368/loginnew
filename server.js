@@ -3,8 +3,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
-const xlsx = require("xlsx");
-const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
@@ -43,7 +41,6 @@ const PatientSchema = new mongoose.Schema({
   code: String,
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
-  registeredBy: String,
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -56,7 +53,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// مسیر ورود
+// مسیرهای API
+
+// ورود
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -114,7 +113,7 @@ app.post("/api/register-request", async (req, res) => {
     res.json({ message: "درخواست ثبت‌نام به ادمین ارسال شد." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "درخواست ثبت‌نام قبلاً ارسال شده یا خطای دیگر." });
+    res.status(500).json({ message: "درخواست ثبت‌نام قبلاً ارسال شده است یا خطای دیگر." });
   }
 });
 
@@ -137,54 +136,20 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// ثبت مستقیم بیمار و ذخیره در اکسل (بدون نیاز به تأیید)
+// ثبت بیمار جدید
 app.post("/api/patients", async (req, res) => {
-  const { name, phone, code, registeredBy } = req.body;
+  const { name, phone, code } = req.body;
 
-  if (!name || !phone || !code || !registeredBy) {
+  if (!name || !phone || !code) {
     return res.status(400).json({ success: false, message: "همه فیلدها الزامی است." });
   }
 
   try {
-    const newPatient = await Patient.create({
-      name,
-      phone,
-      code,
-      registeredBy,
-      approved: true,
-    });
-
-    const filePath = path.join(__dirname, "patients.xlsx");
-    let wsData = [];
-    let wb;
-
-    if (fs.existsSync(filePath)) {
-      wb = xlsx.readFile(filePath);
-      const ws = wb.Sheets["Patients"];
-      wsData = xlsx.utils.sheet_to_json(ws, { header: 1 });
-    } else {
-      wb = xlsx.utils.book_new();
-      wsData.push(["نام", "شماره", "کد", "ثبت‌کننده", "تاریخ ثبت"]);
-    }
-
-    const newRow = [
-      newPatient.name,
-      newPatient.phone,
-      newPatient.code,
-      newPatient.registeredBy,
-      newPatient.createdAt.toLocaleString(),
-    ];
-
-    wsData.push(newRow);
-
-    const ws = xlsx.utils.aoa_to_sheet(wsData);
-    xlsx.utils.book_append_sheet(wb, ws, "Patients", true);
-    xlsx.writeFile(wb, filePath);
-
+    const newPatient = await Patient.create({ name, phone, code });
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "خطا در ذخیره بیمار یا اکسل" });
+    res.status(500).json({ success: false, message: "خطا در ذخیره بیمار" });
   }
 });
 
@@ -199,7 +164,7 @@ app.get("/api/patients/stats", async (req, res) => {
   }
 });
 
-// لیست بیماران
+// لیست بیماران (برای نمایش در داشبورد)
 app.get("/api/patients/list", async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
