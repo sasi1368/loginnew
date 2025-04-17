@@ -3,15 +3,11 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
-const XLSX = require("xlsx");
-const fs = require("fs");
+const xlsx = require("xlsx");  // اضافه کردن کتابخانه xlsx
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// مسیر فایل اکسل
-const excelFilePath = path.join(__dirname, "patients.xlsx");
 
 // اتصال به MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -44,7 +40,6 @@ const PatientSchema = new mongoose.Schema({
   name: String,
   phone: String,
   code: String,
-  userPhone: String, // اضافه کردن فیلد شماره تلفن کاربر
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
@@ -59,13 +54,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// مسیرهای API
+
 // ورود
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username, password });
     if (user) {
-      return res.json({ success: true, name: user.name, phone: user.phone });
+      return res.json({ success: true, name: user.name });
     }
 
     const pending = await PendingUser.findOne({ username, password });
@@ -142,39 +139,28 @@ app.get("/api/approve", async (req, res) => {
 
 // ثبت بیمار جدید
 app.post("/api/patients", async (req, res) => {
-  const { name, phone, code, userPhone } = req.body;
+  const { name, phone, code } = req.body;
 
-  if (!name || !phone || !code || !userPhone) {
+  if (!name || !phone || !code) {
     return res.status(400).json({ success: false, message: "همه فیلدها الزامی است." });
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code, userPhone }); // اضافه کردن userPhone به مدل بیمار
+    const newPatient = await Patient.create({ name, phone, code });
 
-    // افزودن به اکسل
-    let workbook, worksheet, data = [];
-
-    if (fs.existsSync(excelFilePath)) {
-      workbook = XLSX.readFile(excelFilePath);
-      worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      data = XLSX.utils.sheet_to_json(worksheet);
-    } else {
-      workbook = XLSX.utils.book_new();
-    }
-
-    data.push({
-      name,
-      phone,
-      code,
-      createdBy: userPhone, // شماره تلفن کاربر برای ثبت در اکسل
-      approved: false,
-      visited: false,
-      createdAt: new Date().toISOString()
-    });
-
-    const newWorksheet = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(workbook, newWorksheet, "Patients", true);
-    XLSX.writeFile(workbook, excelFilePath);
+    // ذخیره اطلاعات در فایل Excel
+    const patients = await Patient.find();
+    const ws = xlsx.utils.json_to_sheet(patients.map(patient => ({
+      نام: patient.name,
+      شماره: patient.phone,
+      کد: patient.code,
+      تایید شده: patient.approved ? 'بله' : 'خیر',
+      بازدید: patient.visited ? 'بله' : 'خیر',
+      تاریخ: patient.createdAt.toLocaleString(),
+    })));
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "Patients");
+    xlsx.writeFile(wb, "patients.xlsx");
 
     res.json({ success: true, patient: newPatient });
   } catch (err) {
@@ -194,7 +180,7 @@ app.get("/api/patients/stats", async (req, res) => {
   }
 });
 
-// لیست بیماران
+// لیست بیماران (برای نمایش در داشبورد)
 app.get("/api/patients/list", async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
@@ -205,7 +191,7 @@ app.get("/api/patients/list", async (req, res) => {
   }
 });
 
-// fallback
+// fallback برای SPA
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
