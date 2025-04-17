@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
-const xlsx = require("xlsx");  // کتابخانه برای ایجاد فایل Excel
 require("dotenv").config();
 
 const app = express();
@@ -42,7 +41,8 @@ const PatientSchema = new mongoose.Schema({
   code: String,
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" } // اضافه شد
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -54,7 +54,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// مسیرهای API
+// ------------------------ API ها ------------------------ //
 
 // ورود
 app.post("/api/login", async (req, res) => {
@@ -62,7 +62,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const user = await User.findOne({ username, password });
     if (user) {
-      return res.json({ success: true, name: user.name });
+      return res.json({ success: true, name: user.name, userId: user._id }); // userId اضافه شد
     }
 
     const pending = await PendingUser.findOne({ username, password });
@@ -139,49 +139,18 @@ app.get("/api/approve", async (req, res) => {
 
 // ثبت بیمار جدید
 app.post("/api/patients", async (req, res) => {
-  const { name, phone, code } = req.body;
+  const { name, phone, code, userId } = req.body;
 
-  if (!name || !phone || !code) {
+  if (!name || !phone || !code || !userId) {
     return res.status(400).json({ success: false, message: "همه فیلدها الزامی است." });
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code });
+    const newPatient = await Patient.create({ name, phone, code, createdBy: userId });
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "خطا در ذخیره بیمار" });
-  }
-});
-
-// دریافت اطلاعات بیماران و ذخیره در فایل Excel
-app.get("/api/patients/export", async (req, res) => {
-  try {
-    const patients = await Patient.find();
-
-    const ws = xlsx.utils.json_to_sheet(patients.map(patient => ({
-      name: patient.name,           // نام بیمار
-      phone: patient.phone,         // شماره تماس
-      code: patient.code,           // کد بیمار
-      approved: patient.approved ? 'Yes' : 'No', // وضعیت تایید
-      visited: patient.visited ? 'Yes' : 'No',   // وضعیت بازدید
-      date: patient.createdAt.toLocaleString(), // تاریخ ایجاد
-    })));
-
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, "Patients");
-
-    const filePath = path.join(__dirname, "patients.xlsx");
-    xlsx.writeFile(wb, filePath);
-
-    res.download(filePath, 'patients.xlsx', (err) => {
-      if (err) {
-        console.error("Error downloading the file:", err);
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "خطا در دریافت اطلاعات بیماران" });
   }
 });
 
@@ -196,10 +165,16 @@ app.get("/api/patients/stats", async (req, res) => {
   }
 });
 
-// لیست بیماران (برای نمایش در داشبورد)
+// لیست بیماران فقط برای کاربر لاگین‌شده
 app.get("/api/patients/list", async (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ message: "شناسه کاربر ارسال نشده است." });
+  }
+
   try {
-    const patients = await Patient.find().sort({ createdAt: -1 });
+    const patients = await Patient.find({ createdBy: userId }).sort({ createdAt: -1 });
     res.json(patients);
   } catch (err) {
     console.error(err);
