@@ -102,6 +102,7 @@
       padding: 8px 0;
     }
 
+    /* حالت تاریک */
     body.dark-mode {
       background-color: #121212;
       color: #fff;
@@ -132,8 +133,6 @@
       <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
     </div>
 
-    <button onclick="logout()">🚪 خروج از حساب</button>
-
     <label for="patientName">نام بیمار:</label>
     <input type="text" id="patientName" placeholder="مثلاً سعید جمشیدی" required />
 
@@ -151,17 +150,15 @@
 
     <div class="lists">
       <h3>بیماران ارسال‌شده</h3>
-      <div class="list-container" id="submittedPatients">در حال بارگذاری...</div>
+      <div class="list-container" id="submittedPatients"></div>
 
       <h3>بیماران تأیید شده</h3>
-      <div class="list-container" id="approvedPatients">در حال بارگذاری...</div>
+      <div class="list-container" id="approvedPatients"></div>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
-    const baseURL = "https://loginnew-o99m.onrender.com";
-
     const userName = localStorage.getItem("username");
     if (!userName) {
       alert("لطفاً ابتدا وارد شوید.");
@@ -174,33 +171,22 @@
       document.body.classList.toggle("dark-mode");
     }
 
-    function logout() {
-      localStorage.removeItem("username");
-      window.location.href = "login.html";
-    }
-
     async function submitPatient() {
-      const name = document.getElementById("patientName").value.trim();
-      const phone = document.getElementById("patientPhone").value.trim();
+      const name = document.getElementById("patientName").value;
+      const phone = document.getElementById("patientPhone").value;
 
       if (!name || !phone) {
         alert("لطفاً نام و شماره تماس را وارد کنید.");
         return;
       }
 
-      if (!/^09\d{9}$/.test(phone)) {
-        alert("شماره تماس معتبر نیست.");
-        return;
-      }
-
       const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
-      const username = localStorage.getItem("username");
 
       try {
-        const res = await fetch(`${baseURL}/api/patients`, {
+        const res = await fetch("/api/patients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, code, createdBy: username }),
+          body: JSON.stringify({ name, phone, code }),
         });
 
         const data = await res.json();
@@ -220,7 +206,7 @@
 
     async function updateStats() {
       try {
-        const res = await fetch(`${baseURL}/api/patients/stats`);
+        const res = await fetch("/api/patients/stats");
         const data = await res.json();
         document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی: ${data.visited}`;
       } catch {
@@ -229,11 +215,8 @@
     }
 
     async function loadPatientLists() {
-      document.getElementById("submittedPatients").innerText = "در حال بارگذاری...";
-      document.getElementById("approvedPatients").innerText = "در حال بارگذاری...";
-
       try {
-        const res = await fetch(`${baseURL}/api/patients/list`);
+        const res = await fetch("/api/patients/list");
         const data = await res.json();
 
         const submittedContainer = document.getElementById("submittedPatients");
@@ -243,7 +226,7 @@
         approvedContainer.innerHTML = "";
 
         data.forEach(p => {
-          const item = `<div class="list-item">${p.name} - ${p.phone} - ${p.code} - ثبت شده توسط: ${p.createdBy}</div>`;
+          const item = `<div class="list-item">${p.name} - ${p.phone} - ${p.code}</div>`;
           if (p.approved) {
             approvedContainer.innerHTML += item;
           } else {
