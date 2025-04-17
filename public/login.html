@@ -65,7 +65,7 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    button[type="submit"] {
+    button[type="button"] {
       width: 100%;
       background-color: #3b82f6;
       color: white;
@@ -77,7 +77,7 @@
       transition: background-color 0.3s;
     }
 
-    button[type="submit"]:hover {
+    button[type="button"]:hover {
       background-color: #2563eb;
     }
 
@@ -143,11 +143,11 @@
       border-color: #444;
     }
 
-    .dark-mode button[type="submit"] {
+    .dark-mode button[type="button"] {
       background-color: #4c6ef5;
     }
 
-    .dark-mode button[type="submit"]:hover {
+    .dark-mode button[type="button"]:hover {
       background-color: #3a55d4;
     }
 
@@ -185,8 +185,8 @@
         <button type="button" class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
       </div>
 
-      <button type="submit">ورود</button>
-
+      <button type="button" onclick="submitForm()">ورود</button> <!-- تغییر نوع دکمه به button -->
+      
       <div class="signup-link">
         <span>ثبت‌نام نکرده‌اید؟</span>
         <a href="index.html">ثبت‌نام کنید</a>
@@ -202,23 +202,19 @@
       document.body.classList.toggle('dark-mode');
     }
 
-    document.getElementById("login-form").addEventListener("submit", async function (e) {
-      e.preventDefault();
-
+    function submitForm() {
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       const formData = { username, password };
 
-      try {
-        const res = await fetch("https://loginnew-o99m.onrender.com/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        const data = await res.json();
-
+      fetch("https://loginnew-o99m.onrender.com/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      .then(res => res.json())
+      .then(data => {
         if (data.success) {
           alert(`خوش آمدید ${data.name}`);
 
@@ -227,10 +223,12 @@
 
           // لود کردن داشبورد
           const dashboardContainer = document.getElementById("dashboard-container");
-          const response = await fetch("dashboard.html");
-          const html = await response.text();
-          dashboardContainer.innerHTML = html;
-          dashboardContainer.style.display = "block";
+          fetch("dashboard.html")
+            .then(response => response.text())
+            .then(html => {
+              dashboardContainer.innerHTML = html;
+              dashboardContainer.style.display = "block";
+            });
         } else {
           if (data.message === "درخواست شما هنوز تایید نشده است.") {
             alert("درخواست شما هنوز تایید نشده است.");
@@ -238,11 +236,12 @@
             alert("نام کاربری یا رمز عبور اشتباه است یا درخواست شما هنوز تایید نشده است");
           }
         }
-      } catch (err) {
+      })
+      .catch(err => {
         console.error("Error:", err);
         alert("خطا در اتصال به سرور.");
-      }
-    });
+      });
+    }
   </script>
 
 </body>
