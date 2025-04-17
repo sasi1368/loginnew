@@ -130,7 +130,10 @@
   <div class="dashboard-container">
     <div class="top-controls">
       <h2 id="welcome">خوش آمدی!</h2>
-      <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+      <div>
+        <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+        <button class="dark-mode-btn" onclick="logout()">🚪 خروج</button>
+      </div>
     </div>
 
     <label for="patientName">نام بیمار:</label>
@@ -164,21 +167,49 @@
       alert("لطفاً ابتدا وارد شوید.");
       window.location.href = "login.html";
     } else {
-      document.getElementById("welcome").innerText = `خوش آمدی ${userName}`;
+      const displayName = userName.length > 20 ? userName.slice(0, 20) + "..." : userName;
+      document.getElementById("welcome").innerText = `خوش آمدی ${displayName}`;
     }
 
+    // ذخیره‌سازی حالت تاریک
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
+      const isDark = document.body.classList.contains("dark-mode");
+      localStorage.setItem("darkMode", isDark);
     }
 
+    window.onload = function () {
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+      }
+    };
+
+    // خروج
+    function logout() {
+      localStorage.removeItem("username");
+      window.location.href = "login.html";
+    }
+
+    // جلوگیری از ارسال چندباره فرم
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+      }
+    });
+
+    // ثبت بیمار
     async function submitPatient() {
       const name = document.getElementById("patientName").value;
       const phone = document.getElementById("patientPhone").value;
+      const submitButton = document.querySelector("button[onclick='submitPatient()']");
 
       if (!name || !phone) {
         alert("لطفاً نام و شماره تماس را وارد کنید.");
         return;
       }
+
+      submitButton.disabled = true;
+      submitButton.innerText = "در حال ارسال...";
 
       const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -196,14 +227,22 @@
           document.getElementById("patientCode").innerText = `کد بیمار: ${code}`;
           updateStats();
           loadPatientLists();
+
+          // پاک‌سازی فرم
+          document.getElementById("patientName").value = "";
+          document.getElementById("patientPhone").value = "";
         } else {
           alert(data.message || "خطا در ثبت اطلاعات بیمار.");
         }
       } catch (err) {
         alert("خطا در اتصال به سرور.");
       }
+
+      submitButton.disabled = false;
+      submitButton.innerText = "ثبت بیمار";
     }
 
+    // بروزرسانی آمار
     async function updateStats() {
       try {
         const res = await fetch("/api/patients/stats");
@@ -214,6 +253,7 @@
       }
     }
 
+    // بارگذاری لیست بیماران
     async function loadPatientLists() {
       try {
         const res = await fetch("/api/patients/list");
