@@ -226,6 +226,7 @@
           const html = `
             <div class="list-item">
               ${p.name} - ${p.phone} - ${p.code}
+              ${p.approved ? "<span>تایید شده</span>" : ""}
             </div>`;
           if (p.approved) approved.innerHTML += html;
           else submitted.innerHTML += html;
