@@ -137,7 +137,7 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// ثبت بیمار جدید
+// ثبت مستقیم بیمار و ذخیره در اکسل (بدون نیاز به تأیید)
 app.post("/api/patients", async (req, res) => {
   const { name, phone, code, registeredBy } = req.body;
 
@@ -146,50 +146,13 @@ app.post("/api/patients", async (req, res) => {
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code, registeredBy });
-
-    const token = process.env.BOT_TOKEN;
-    const chatId = process.env.ADMIN_CHAT_ID;
-    const approveUrl = `${process.env.SERVER_URL}/api/approve-patient?patientId=${newPatient._id}`;
-
-    const message = `
-👤 بیمار جدید:
-📛 نام: ${newPatient.name}
-📱 شماره: ${newPatient.phone}
-🆔 کد: ${newPatient.code}
-
-برای تأیید، روی دکمه زیر کلیک کنید:
-    `;
-
-    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-      chat_id: chatId,
-      text: message,
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "✅ تأیید بیمار", url: approveUrl }],
-        ],
-      },
+    const newPatient = await Patient.create({
+      name,
+      phone,
+      code,
+      registeredBy,
+      approved: true,
     });
-
-    res.json({ success: true, patient: newPatient });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "خطا در ذخیره بیمار" });
-  }
-});
-
-// تأیید بیمار و ذخیره در اکسل
-app.get("/api/approve-patient", async (req, res) => {
-  const { patientId } = req.query;
-
-  try {
-    const patient = await Patient.findById(patientId);
-    if (!patient) {
-      return res.status(404).send("❌ بیمار پیدا نشد.");
-    }
-
-    patient.approved = true;
-    await patient.save();
 
     const filePath = path.join(__dirname, "patients.xlsx");
     let wsData = [];
@@ -205,11 +168,11 @@ app.get("/api/approve-patient", async (req, res) => {
     }
 
     const newRow = [
-      patient.name,
-      patient.phone,
-      patient.code,
-      patient.registeredBy,
-      patient.createdAt.toLocaleString(),
+      newPatient.name,
+      newPatient.phone,
+      newPatient.code,
+      newPatient.registeredBy,
+      newPatient.createdAt.toLocaleString(),
     ];
 
     wsData.push(newRow);
@@ -218,10 +181,10 @@ app.get("/api/approve-patient", async (req, res) => {
     xlsx.utils.book_append_sheet(wb, ws, "Patients", true);
     xlsx.writeFile(wb, filePath);
 
-    res.send("✅ بیمار با موفقیت تایید و در فایل اکسل ذخیره شد.");
+    res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
-    res.status(500).send("❌ خطا در تایید بیمار.");
+    res.status(500).json({ success: false, message: "خطا در ذخیره بیمار یا اکسل" });
   }
 });
 
