@@ -44,6 +44,7 @@ const PatientSchema = new mongoose.Schema({
   name: String,
   phone: String,
   code: String,
+  userPhone: String, // اضافه کردن فیلد شماره تلفن کاربر
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
@@ -148,7 +149,7 @@ app.post("/api/patients", async (req, res) => {
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code });
+    const newPatient = await Patient.create({ name, phone, code, userPhone }); // اضافه کردن userPhone به مدل بیمار
 
     // افزودن به اکسل
     let workbook, worksheet, data = [];
@@ -165,7 +166,7 @@ app.post("/api/patients", async (req, res) => {
       name,
       phone,
       code,
-      createdBy: userPhone,
+      createdBy: userPhone, // شماره تلفن کاربر برای ثبت در اکسل
       approved: false,
       visited: false,
       createdAt: new Date().toISOString()
