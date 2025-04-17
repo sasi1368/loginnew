@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const axios = require("axios");
-const xlsx = require("xlsx");  // اضافه کردن کتابخانه xlsx
+const xlsx = require("xlsx");  // کتابخانه برای ایجاد فایل Excel
 require("dotenv").config();
 
 const app = express();
@@ -147,25 +147,41 @@ app.post("/api/patients", async (req, res) => {
 
   try {
     const newPatient = await Patient.create({ name, phone, code });
-
-    // ذخیره اطلاعات در فایل Excel
-    const patients = await Patient.find();
-    const ws = xlsx.utils.json_to_sheet(patients.map(patient => ({
-      نام: patient.name,
-      شماره: patient.phone,
-      کد: patient.code,
-      تایید شده: patient.approved ? 'بله' : 'خیر',
-      بازدید: patient.visited ? 'بله' : 'خیر',
-      تاریخ: patient.createdAt.toLocaleString(),
-    })));
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, "Patients");
-    xlsx.writeFile(wb, "patients.xlsx");
-
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "خطا در ذخیره بیمار" });
+  }
+});
+
+// دریافت اطلاعات بیماران و ذخیره در فایل Excel
+app.get("/api/patients/export", async (req, res) => {
+  try {
+    const patients = await Patient.find();
+
+    const ws = xlsx.utils.json_to_sheet(patients.map(patient => ({
+      name: patient.name,           // نام بیمار
+      phone: patient.phone,         // شماره تماس
+      code: patient.code,           // کد بیمار
+      approved: patient.approved ? 'Yes' : 'No', // وضعیت تایید
+      visited: patient.visited ? 'Yes' : 'No',   // وضعیت بازدید
+      date: patient.createdAt.toLocaleString(), // تاریخ ایجاد
+    })));
+
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "Patients");
+
+    const filePath = path.join(__dirname, "patients.xlsx");
+    xlsx.writeFile(wb, filePath);
+
+    res.download(filePath, 'patients.xlsx', (err) => {
+      if (err) {
+        console.error("Error downloading the file:", err);
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "خطا در دریافت اطلاعات بیماران" });
   }
 });
 
