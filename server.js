@@ -45,9 +45,18 @@ const PatientSchema = new mongoose.Schema({
   createdBy: String // نام کاربری ثبت‌کننده
 });
 
+const PatientVisitedSchema = new mongoose.Schema({
+  name: String,
+  phone: String,
+  code: String,
+  username: String,
+  visitedDate: { type: Date, default: Date.now },
+});
+
 const User = mongoose.model("User", UserSchema);
 const PendingUser = mongoose.model("PendingUser", PendingUserSchema);
 const Patient = mongoose.model("Patient", PatientSchema);
+const PatientVisited = mongoose.model("PatientVisited", PatientVisitedSchema);
 
 // میانی‌ها
 app.use(bodyParser.json());
@@ -146,6 +155,32 @@ app.post("/api/patients", async (req, res) => {
 
   try {
     const newPatient = await Patient.create({ name, phone, code, createdBy: username });
+
+    // ارسال اطلاعات به تلگرام
+    const token = process.env.BOT_TOKEN;
+    const chatId = process.env.ADMIN_CHAT_ID;
+    const approveUrl = `${process.env.SERVER_URL}/api/approve-patient?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}&username=${encodeURIComponent(username)}`;
+
+    const message = `
+👤 بیمار جدید ثبت‌شده:
+📛 نام: ${name}
+📱 شماره: ${phone}
+🩺 کد: ${code}
+👤 نام کاربری ثبت‌کننده: ${username}
+
+برای تأیید، روی دکمه زیر کلیک کنید:
+  `;
+
+    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+      chat_id: chatId,
+      text: message,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "✅ تایید بیمار", url: approveUrl }],
+        ],
+      },
+    });
+
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
@@ -153,16 +188,45 @@ app.post("/api/patients", async (req, res) => {
   }
 });
 
-// آمار مراجعه
-app.get("/api/patients/stats", async (req, res) => {
+// تایید بیمار و انتقال به لیست بیماران تایید شده
+app.get("/api/approve-patient", async (req, res) => {
+  const { name, phone, code, username } = req.query;
+
+  try {
+    const patient = await Patient.findOne({ phone });
+    if (!patient) {
+      return res.status(404).send("❌ بیمار پیدا نشد.");
+    }
+
+    // انتقال بیمار به لیست بیماران تاییدشده
+    const visitedPatient = new PatientVisited({
+      name: patient.name,
+      phone: patient.phone,
+      code: patient.code,
+      username: patient.createdBy,
+    });
+    await visitedPatient.save();
+
+    // حذف بیمار از لیست بیماران
+    await Patient.findOneAndDelete({ phone });
+
+    res.send("✅ بیمار تایید شد.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ خطا در تایید بیمار.");
+  }
+});
+
+// لیست بیماران تایید شده
+app.get("/api/patients/visited-list", async (req, res) => {
   const { username } = req.query;
 
   try {
-    const visitedCount = await Patient.countDocuments({ visited: true, createdBy: username });
-    res.json({ visited: visitedCount });
+    const patientsVisited = await PatientVisited.find({ username }).sort({ visitedDate: -1 });
+    res.json(patientsVisited);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ visited: 0 });
+    res.status(500).json([]);
   }
 });
 
