@@ -59,6 +59,25 @@
     .list-item {
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       padding: 8px 0;
+      position: relative;
+    }
+    .list-item button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .list-item button.edit {
+      right: 40px;
+      color: #4CAF50;
+    }
+    .list-item button.delete {
+      right: 10px;
+      color: #FF5722;
     }
     body.dark-mode {
       background-color: #121212; color: #fff;
@@ -80,7 +99,6 @@
     <div class="top-controls">
       <h2 id="welcome">خوش آمدی!</h2>
       <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
-      <button id="logoutBtn">خروج</button>
     </div>
 
     <label for="patientName">نام بیمار:</label>
@@ -119,17 +137,10 @@
       document.getElementById("welcome").innerText = `خوش آمدی ${name}`;
     }
 
-    // فعال‌سازی حالت شب
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
-      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
     }
 
-    if (localStorage.getItem("darkMode") === "true") {
-      document.body.classList.add("dark-mode");
-    }
-
-    // ثبت بیمار
     async function submitPatient() {
       const patientName = document.getElementById("patientName").value;
       const patientPhone = document.getElementById("patientPhone").value;
@@ -167,7 +178,6 @@
       }
     }
 
-    // آپدیت آمار مراجعه واقعی
     async function updateStats() {
       try {
         const res = await fetch("/api/patients/stats");
@@ -179,7 +189,6 @@
       }
     }
 
-    // بارگذاری لیست بیماران ارسال‌شده و تأیید شده
     async function loadPatientLists() {
       try {
         const res = await fetch(`/api/patients/list?username=${username}`);
@@ -190,13 +199,12 @@
         approved.innerHTML = "";
 
         data.forEach(p => {
-          const html = `<div class="list-item">
-                          ${p.name} - ${p.phone} - ${p.code} 
-                          <button onclick="approvePatient('${p._id}')">تأیید</button>
-                          <button onclick="editPatient('${p._id}')">ویرایش</button>
-                          <button onclick="deletePatient('${p._id}')">حذف</button>
-                          <button onclick="toggleVisibility('${p._id}')">مخفی</button>
-                        </div>`;
+          const html = `
+            <div class="list-item">
+              ${p.name} - ${p.phone} - ${p.code}
+              <button class="edit" onclick="editPatient('${p._id}')">✏️</button>
+              <button class="delete" onclick="deletePatient('${p._id}')">🗑️</button>
+            </div>`;
           if (p.approved) approved.innerHTML += html;
           else submitted.innerHTML += html;
         });
@@ -206,65 +214,28 @@
       }
     }
 
-    // تأیید بیمار
-    async function approvePatient(id) {
-      try {
-        const res = await fetch(`/api/patients/${id}/approve`, { method: 'PATCH' });
-        const data = await res.json();
-        if (data.success) loadPatientLists();
-      } catch {
-        alert("خطا در تأیید بیمار");
-      }
+    async function editPatient(patientId) {
+      alert(`ویرایش بیمار با شناسه ${patientId}`);
+      // این بخش را برای ویرایش بیمار پیاده‌سازی کنید
     }
 
-    // ویرایش بیمار
-    async function editPatient(id) {
-      const name = prompt("نام جدید بیمار را وارد کنید:");
-      const phone = prompt("شماره تماس جدید بیمار را وارد کنید:");
-
-      if (name && phone) {
+    async function deletePatient(patientId) {
+      if (confirm("آیا مطمئن هستید که می‌خواهید این بیمار را حذف کنید؟")) {
         try {
-          const res = await fetch(`/api/patients/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone })
+          const res = await fetch(`/api/patients/${patientId}`, {
+            method: "DELETE",
           });
           const data = await res.json();
-          if (data.success) loadPatientLists();
-        } catch {
-          alert("خطا در ویرایش بیمار");
+          if (data.success) {
+            loadPatientLists();
+          } else {
+            alert(data.message || "خطا در حذف بیمار");
+          }
+        } catch (err) {
+          alert("خطا در حذف بیمار");
         }
       }
     }
-
-    // حذف بیمار
-    async function deletePatient(id) {
-      try {
-        const res = await fetch(`/api/patients/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) loadPatientLists();
-      } catch {
-        alert("خطا در حذف بیمار");
-      }
-    }
-
-    // مخفی کردن بیمار
-    async function toggleVisibility(id) {
-      try {
-        const res = await fetch(`/api/patients/${id}/toggle-visibility`, { method: 'PATCH' });
-        const data = await res.json();
-        if (data.success) loadPatientLists();
-      } catch {
-        alert("خطا در مخفی کردن بیمار");
-      }
-    }
-
-    // دکمه خروج
-    document.getElementById("logoutBtn").onclick = () => {
-      localStorage.removeItem("username");
-      localStorage.removeItem("name");
-      window.location.href = "login.html";
-    };
 
     updateStats();
     loadPatientLists();
