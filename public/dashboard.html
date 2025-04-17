@@ -70,24 +70,6 @@
       padding: 8px 0;
       position: relative;
     }
-    .list-item button {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .list-item button.edit {
-      left: 10px;
-      color: #4CAF50;
-    }
-    .list-item button.delete {
-      right: 10px;
-      color: #FF5722;
-    }
     body.dark-mode {
       background-color: #121212; color: #fff;
     }
@@ -109,7 +91,7 @@
       <h2 id="welcome">خوش آمدی!</h2>
       <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
       <button class="logout-btn" onclick="logout()">
-        <img src="images/logout-icon.png" alt="خروج" />
+        <img src="logout-icon.png" alt="خروج" />
       </button>
     </div>
 
@@ -182,6 +164,8 @@
 
         const data = await res.json();
         if (data.success) {
+          // ارسال اطلاعات بیمار به تلگرام
+          sendToTelegram(patientName, patientPhone, code);
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), code);
           document.getElementById("patientCode").innerText = `کد بیمار: ${code}`;
@@ -193,6 +177,28 @@
       } catch (err) {
         console.error(err);
         alert("خطا در اتصال به سرور");
+      }
+    }
+
+    async function sendToTelegram(patientName, patientPhone, code) {
+      const message = `
+        بیمار جدید ثبت‌شده:
+        نام: ${patientName}
+        شماره تماس: ${patientPhone}
+        کد بیمار: ${code}
+      `;
+
+      try {
+        await fetch('https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: 'YOUR_CHAT_ID',
+            text: message,
+          }),
+        });
+      } catch (err) {
+        console.error("خطا در ارسال به تلگرام:", err);
       }
     }
 
@@ -220,8 +226,6 @@
           const html = `
             <div class="list-item">
               ${p.name} - ${p.phone} - ${p.code}
-              <button class="edit" onclick="editPatient('${p._id}')">✏️</button>
-              <button class="delete" onclick="deletePatient('${p._id}')">🗑️</button>
             </div>`;
           if (p.approved) approved.innerHTML += html;
           else submitted.innerHTML += html;
@@ -232,26 +236,20 @@
       }
     }
 
-    async function editPatient(patientId) {
-      alert(`ویرایش بیمار با شناسه ${patientId}`);
-      // این بخش را برای ویرایش بیمار پیاده‌سازی کنید
-    }
-
-    async function deletePatient(patientId) {
-      if (confirm("آیا مطمئن هستید که می‌خواهید این بیمار را حذف کنید؟")) {
-        try {
-          const res = await fetch(`/api/patients/${patientId}`, {
-            method: "DELETE",
-          });
-          const data = await res.json();
-          if (data.success) {
-            loadPatientLists();
-          } else {
-            alert(data.message || "خطا در حذف بیمار");
-          }
-        } catch (err) {
-          alert("خطا در حذف بیمار");
+    // بعد از تایید از تلگرام، بیمار از patients حذف و به patientsVisited منتقل می‌شود
+    async function approvePatient(patientId) {
+      try {
+        const res = await fetch(`/api/patients/approve/${patientId}`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          // انتقال به patientsVisited
+          await fetch(`/api/patients/transferToVisited/${patientId}`, { method: "POST" });
+          loadPatientLists(); // بروز رسانی لیست‌ها
+        } else {
+          alert("خطا در تایید بیمار");
         }
+      } catch (err) {
+        console.error("خطا در تایید بیمار:", err);
       }
     }
 
