@@ -42,7 +42,7 @@ const PatientSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
   visited: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" } // اضافه شد
+  createdBy: String // نام کاربری ثبت‌کننده
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -54,7 +54,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ------------------------ API ها ------------------------ //
+// APIها
 
 // ورود
 app.post("/api/login", async (req, res) => {
@@ -62,7 +62,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const user = await User.findOne({ username, password });
     if (user) {
-      return res.json({ success: true, name: user.name, userId: user._id }); // userId اضافه شد
+      return res.json({ success: true, name: user.name, username });
     }
 
     const pending = await PendingUser.findOne({ username, password });
@@ -77,10 +77,9 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ثبت درخواست ثبت‌نام و ارسال به تلگرام
+// ثبت درخواست ثبت‌نام
 app.post("/api/register-request", async (req, res) => {
   const { name, phone, username, password, fingerprint, deviceId } = req.body;
-
   if (!name || !phone || !username || !password || !fingerprint || !deviceId) {
     return res.status(400).json({ message: "لطفاً همه فیلدها را پر کنید" });
   }
@@ -118,7 +117,7 @@ app.post("/api/register-request", async (req, res) => {
   }
 });
 
-// تأیید ثبت‌نام توسط ادمین
+// تأیید ثبت‌نام
 app.get("/api/approve", async (req, res) => {
   const { name, phone, username, password, fingerprint, deviceId } = req.query;
 
@@ -137,16 +136,16 @@ app.get("/api/approve", async (req, res) => {
   }
 });
 
-// ثبت بیمار جدید
+// ثبت بیمار
 app.post("/api/patients", async (req, res) => {
-  const { name, phone, code, userId } = req.body;
+  const { name, phone, code, username } = req.body;
 
-  if (!name || !phone || !code || !userId) {
+  if (!name || !phone || !code || !username) {
     return res.status(400).json({ success: false, message: "همه فیلدها الزامی است." });
   }
 
   try {
-    const newPatient = await Patient.create({ name, phone, code, createdBy: userId });
+    const newPatient = await Patient.create({ name, phone, code, createdBy: username });
     res.json({ success: true, patient: newPatient });
   } catch (err) {
     console.error(err);
@@ -154,10 +153,12 @@ app.post("/api/patients", async (req, res) => {
   }
 });
 
-// آمار مراجعه واقعی بیماران
+// آمار مراجعه
 app.get("/api/patients/stats", async (req, res) => {
+  const { username } = req.query;
+
   try {
-    const visitedCount = await Patient.countDocuments({ visited: true });
+    const visitedCount = await Patient.countDocuments({ visited: true, createdBy: username });
     res.json({ visited: visitedCount });
   } catch (err) {
     console.error(err);
@@ -165,16 +166,12 @@ app.get("/api/patients/stats", async (req, res) => {
   }
 });
 
-// لیست بیماران فقط برای کاربر لاگین‌شده
+// لیست بیماران فقط متعلق به کاربر لاگین شده
 app.get("/api/patients/list", async (req, res) => {
-  const { userId } = req.query;
-
-  if (!userId) {
-    return res.status(400).json({ message: "شناسه کاربر ارسال نشده است." });
-  }
+  const { username } = req.query;
 
   try {
-    const patients = await Patient.find({ createdBy: userId }).sort({ createdAt: -1 });
+    const patients = await Patient.find({ createdBy: username }).sort({ createdAt: -1 });
     res.json(patients);
   } catch (err) {
     console.error(err);
@@ -182,7 +179,7 @@ app.get("/api/patients/list", async (req, res) => {
   }
 });
 
-// fallback برای SPA
+// fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
