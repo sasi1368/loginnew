@@ -194,9 +194,6 @@
     </form>
   </div>
 
-  <!-- 🔽 محلی برای نمایش داشبورد پس از لاگین -->
-  <div id="dashboard-container" style="display: none; width: 100%;"></div>
-
   <script>
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
@@ -221,6 +218,9 @@
 
         if (data.success) {
           alert(`خوش آمدید ${data.name}`);
+
+          // ذخیره اطلاعات کاربر در LocalStorage
+          localStorage.setItem('username', data.name);
 
           // مخفی کردن فرم لاگین
           document.querySelector(".login-container").style.display = "none";
