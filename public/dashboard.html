@@ -2,54 +2,74 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>داشبورد</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <title>داشبورد کاربر</title>
   <style>
     body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: #f9fafb; padding: 20px;
-      color: #111;
+      font-family: "Vazirmatn", sans-serif;
+      background-color: #f3f4f6;
+      padding: 30px;
+      direction: rtl;
+      color: #1f2937;
     }
+
     .dashboard-container {
-      max-width: 700px; margin: auto;
-      background: #fff; padding: 20px;
-      border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: auto;
+      background-color: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+
     .top-controls {
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h2 {
       margin-bottom: 20px;
     }
-    .dark-mode-btn {
-      background: none; border: none; font-size: 20px; cursor: pointer;
+
+    label {
+      display: block;
+      margin-top: 15px;
     }
+
     input {
-      width: 100%; padding: 10px; margin-bottom: 12px;
-      border-radius: 8px; border: 1px solid #ccc;
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
+
     button {
-      padding: 10px 16px; border: none;
-      background-color: #3b82f6; color: #fff;
-      border-radius: 8px; cursor: pointer;
-      margin-bottom: 20px;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
     }
-    .qrcode { margin-top: 20px; }
-    .list-container {
-      background: #f1f5f9;
-      padding: 10px; border-radius: 6px;
-      margin-bottom: 20px;
+
+    button:hover {
+      background-color: #2563eb;
     }
+
     .dark-mode {
-      background: #222; color: #fff;
+      background-color: #1f2937;
+      color: #f9fafb;
     }
-    .dark-mode .dashboard-container {
-      background: #333; color: #fff;
-    }
+
     .dark-mode input {
-      background: #444; color: #fff;
-      border: 1px solid #666;
+      background-color: #374151;
+      color: white;
     }
-    .dark-mode .list-container {
-      background: #444;
+
+    .dark-mode .dashboard-container {
+      background-color: #374151;
     }
   </style>
 </head>
@@ -58,80 +78,85 @@
     <div class="top-controls">
       <h2 id="welcome">خوش آمدید!</h2>
       <div>
-        <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
-        <button class="dark-mode-btn" onclick="logout()">🚪 خروج</button>
+        <button onclick="toggleDarkMode()">🌙</button>
+        <button onclick="logout()">🚪 خروج</button>
       </div>
     </div>
 
     <label for="patientName">نام بیمار:</label>
-    <input type="text" id="patientName" placeholder="مثلاً علی رضایی" required>
+    <input type="text" id="patientName" required placeholder="مثلاً امیر رضایی" />
 
     <label for="patientPhone">شماره تماس:</label>
-    <input type="tel" id="patientPhone" placeholder="مثلاً 0935..." required>
+    <input type="tel" id="patientPhone" required placeholder="مثلاً 09351234567" />
 
     <button onclick="submitPatient()">ثبت بیمار</button>
 
-    <div id="patientCode"></div>
-    <div class="qrcode" id="qrcode"></div>
-
-    <div class="list-container" id="submittedPatients"></div>
-    <div class="list-container" id="approvedPatients"></div>
+    <div id="patientCode" style="margin-top: 15px; font-weight: bold;"></div>
+    <div id="qrcode" style="margin-top: 10px;"></div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
+    // جلوگیری از دسترسی مستقیم بدون لاگین
     const username = localStorage.getItem("username");
     if (!username) {
+      alert("لطفاً ابتدا وارد شوید.");
       window.location.href = "login.html";
     } else {
       document.getElementById("welcome").innerText = `خوش آمدید ${username}`;
     }
 
+    // حالت تیره
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
-      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
     }
 
-    window.onload = () => {
-      if (localStorage.getItem("darkMode") === "true") {
-        document.body.classList.add("dark-mode");
-      }
-    };
-
+    // خروج
     function logout() {
       localStorage.removeItem("username");
       window.location.href = "login.html";
     }
 
+    // ثبت بیمار
     async function submitPatient() {
       const name = document.getElementById("patientName").value;
       const phone = document.getElementById("patientPhone").value;
-      if (!name || !phone) return alert("همه فیلدها الزامی هستند.");
+      const user = localStorage.getItem("username");
+
+      if (!name || !phone) {
+        alert("لطفاً نام و شماره تماس را وارد کنید.");
+        return;
+      }
 
       const code = `pt-${Math.floor(100000 + Math.random() * 900000)}`;
       document.getElementById("patientCode").innerText = `کد بیمار: ${code}`;
-      generateQRCode(code);
 
-      try {
-        const res = await fetch("/api/patients", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, code }),
-        });
-        const data = await res.json();
-        if (!data.success) alert("خطا در ثبت اطلاعات.");
-      } catch (err) {
-        alert("ارتباط با سرور برقرار نشد.");
-      }
-    }
-
-    function generateQRCode(code) {
+      // تولید QR
       const qrContainer = document.getElementById("qrcode");
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
         text: code,
         width: 128,
-        height: 128,
+        height: 128
       });
+
+      try {
+        const res = await fetch("/api/patients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, code, addedBy: user }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert("اطلاعات با موفقیت ثبت شد.");
+        } else {
+          alert("خطا در ثبت اطلاعات.");
+        }
+      } catch (err) {
+        alert("خطا در ارتباط با سرور.");
+        console.error(err);
+      }
     }
   </script>
 </body>
