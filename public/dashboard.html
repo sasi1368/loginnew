@@ -80,6 +80,7 @@
     <div class="top-controls">
       <h2 id="welcome">خوش آمدی!</h2>
       <button class="dark-mode-btn" onclick="toggleDarkMode()">🌙</button>
+      <button id="logoutBtn">خروج</button>
     </div>
 
     <label for="patientName">نام بیمار:</label>
@@ -118,10 +119,17 @@
       document.getElementById("welcome").innerText = `خوش آمدی ${name}`;
     }
 
+    // فعال‌سازی حالت شب
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
     }
 
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark-mode");
+    }
+
+    // ثبت بیمار
     async function submitPatient() {
       const patientName = document.getElementById("patientName").value;
       const patientPhone = document.getElementById("patientPhone").value;
@@ -159,6 +167,7 @@
       }
     }
 
+    // آپدیت آمار مراجعه واقعی
     async function updateStats() {
       try {
         const res = await fetch("/api/patients/stats");
@@ -170,6 +179,7 @@
       }
     }
 
+    // بارگذاری لیست بیماران ارسال‌شده و تأیید شده
     async function loadPatientLists() {
       try {
         const res = await fetch(`/api/patients/list?username=${username}`);
@@ -180,7 +190,13 @@
         approved.innerHTML = "";
 
         data.forEach(p => {
-          const html = `<div class="list-item">${p.name} - ${p.phone} - ${p.code}</div>`;
+          const html = `<div class="list-item">
+                          ${p.name} - ${p.phone} - ${p.code} 
+                          <button onclick="approvePatient('${p._id}')">تأیید</button>
+                          <button onclick="editPatient('${p._id}')">ویرایش</button>
+                          <button onclick="deletePatient('${p._id}')">حذف</button>
+                          <button onclick="toggleVisibility('${p._id}')">مخفی</button>
+                        </div>`;
           if (p.approved) approved.innerHTML += html;
           else submitted.innerHTML += html;
         });
@@ -189,6 +205,66 @@
         document.getElementById("approvedPatients").innerText = "خطا در بارگذاری";
       }
     }
+
+    // تأیید بیمار
+    async function approvePatient(id) {
+      try {
+        const res = await fetch(`/api/patients/${id}/approve`, { method: 'PATCH' });
+        const data = await res.json();
+        if (data.success) loadPatientLists();
+      } catch {
+        alert("خطا در تأیید بیمار");
+      }
+    }
+
+    // ویرایش بیمار
+    async function editPatient(id) {
+      const name = prompt("نام جدید بیمار را وارد کنید:");
+      const phone = prompt("شماره تماس جدید بیمار را وارد کنید:");
+
+      if (name && phone) {
+        try {
+          const res = await fetch(`/api/patients/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone })
+          });
+          const data = await res.json();
+          if (data.success) loadPatientLists();
+        } catch {
+          alert("خطا در ویرایش بیمار");
+        }
+      }
+    }
+
+    // حذف بیمار
+    async function deletePatient(id) {
+      try {
+        const res = await fetch(`/api/patients/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) loadPatientLists();
+      } catch {
+        alert("خطا در حذف بیمار");
+      }
+    }
+
+    // مخفی کردن بیمار
+    async function toggleVisibility(id) {
+      try {
+        const res = await fetch(`/api/patients/${id}/toggle-visibility`, { method: 'PATCH' });
+        const data = await res.json();
+        if (data.success) loadPatientLists();
+      } catch {
+        alert("خطا در مخفی کردن بیمار");
+      }
+    }
+
+    // دکمه خروج
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("username");
+      localStorage.removeItem("name");
+      window.location.href = "login.html";
+    };
 
     updateStats();
     loadPatientLists();
