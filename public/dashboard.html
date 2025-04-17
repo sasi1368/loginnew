@@ -4,8 +4,138 @@
   <meta charset="UTF-8" />
   <title>داشبورد کاربر</title>
   <style>
-    /* Styles omitted for brevity */
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
+    * {
+      font-family: 'Vazirmatn', sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(to right, #f0f4f8, #d9e2ec);
+      margin: 0;
+      padding: 20px;
+      color: #1f2937;
+    }
+
+    .dark-mode {
+      background: #1f2937;
+      color: #f9fafb;
+    }
+
+    .dashboard-container {
+      max-width: 800px;
+      margin: auto;
+      padding: 25px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .dark-mode .dashboard-container {
+      background: rgba(30, 30, 30, 0.85);
+    }
+
+    .top-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .top-controls h2 {
+      font-size: 22px;
+    }
+
+    .dark-mode-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    input[type="text"], input[type="tel"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background-color: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+
+    .qrcode {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    #patientCode {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .stats {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .lists {
+      margin-top: 30px;
+    }
+
+    .lists h3 {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+      margin-top: 20px;
+    }
+
+    .list-container {
+      max-height: 180px;
+      overflow-y: auto;
+      background: #f9fafb;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .dark-mode .list-container {
+      background: #374151;
+    }
+
+    .list-container div {
+      padding: 6px 0;
+      border-bottom: 1px dashed #ccc;
+    }
+
+    .list-container div:last-child {
+      border-bottom: none;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -17,21 +147,19 @@
       </div>
     </div>
 
-    <!-- Form for adding a patient -->
     <label for="patientName">نام بیمار:</label>
     <input type="text" id="patientName" placeholder="مثلاً سعید جمشیدی" required />
     <label for="patientPhone">شماره تماس:</label>
     <input type="tel" id="patientPhone" placeholder="مثلاً 09334676901" required />
     <button onclick="submitPatient()">ثبت بیمار</button>
 
-    <!-- QR Code & Patient Stats -->
     <div class="qrcode" id="qrcode"></div>
     <p id="patientCode"></p>
+
     <div class="stats">
       <span id="realVisits">در حال بارگذاری آمار مراجعه...</span>
     </div>
 
-    <!-- Lists of patients -->
     <div class="lists">
       <h3>بیماران ارسال‌شده</h3>
       <div class="list-container" id="submittedPatients"></div>
@@ -42,7 +170,6 @@
   </div>
 
   <script>
-    // Loading user information and handling actions
     const userName = localStorage.getItem("username");
     if (!userName) {
       alert("لطفاً ابتدا وارد شوید.");
@@ -62,18 +189,19 @@
       if (localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
       }
+
+      loadPatients();
+      loadStats();
     };
 
-    // Handling logout
     function logout() {
       localStorage.removeItem("username");
       window.location.href = "login.html";
     }
 
-    // Form submission
     async function submitPatient() {
-      const name = document.getElementById("patientName").value;
-      const phone = document.getElementById("patientPhone").value;
+      const name = document.getElementById("patientName").value.trim();
+      const phone = document.getElementById("patientPhone").value.trim();
 
       if (!name || !phone) {
         alert("لطفاً نام و شماره تماس را وارد کنید.");
@@ -86,28 +214,60 @@
         const res = await fetch("/api/patients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, code }),
+          body: JSON.stringify({ name, phone, code, submittedBy: userName }),
         });
 
         const data = await res.json();
         if (data.success) {
           document.getElementById("patientCode").innerText = `کد بیمار: ${code}`;
-          generateQRCode(code);  // Call the QR Code generator
+          generateQRCode(code);
+          loadPatients();
+          loadStats();
+        } else {
+          alert("ثبت بیمار موفق نبود.");
         }
       } catch (err) {
+        console.error(err);
         alert("خطا در ثبت بیمار.");
       }
     }
 
-    // Generate QR Code
     function generateQRCode(code) {
       const qrCodeElement = document.getElementById("qrcode");
-      qrCodeElement.innerHTML = "";  // Clear any existing QR code
-      const qrCode = new QRCode(qrCodeElement, {
+      qrCodeElement.innerHTML = "";
+      new QRCode(qrCodeElement, {
         text: code,
         width: 128,
         height: 128,
       });
+    }
+
+    async function loadPatients() {
+      try {
+        const res = await fetch("/api/patients");
+        const data = await res.json();
+
+        const submitted = data.patients.filter(p => p.submittedBy === userName);
+        const approved = submitted.filter(p => p.approved === true);
+
+        const submittedDiv = document.getElementById("submittedPatients");
+        const approvedDiv = document.getElementById("approvedPatients");
+
+        submittedDiv.innerHTML = submitted.map(p => `<div>${p.name} (${p.phone})</div>`).join("") || "هنوز بیماری ثبت نشده است.";
+        approvedDiv.innerHTML = approved.map(p => `<div>${p.name} (${p.phone})</div>`).join("") || "بیماری تأیید نشده است.";
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        document.getElementById("realVisits").innerText = `تعداد مراجعه واقعی: ${data.realVisits} | مجموع کدهای صادر شده: ${data.totalCodes}`;
+      } catch (err) {
+        document.getElementById("realVisits").innerText = "خطا در دریافت آمار مراجعه.";
+      }
     }
   </script>
 </body>
