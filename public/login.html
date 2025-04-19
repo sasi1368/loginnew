@@ -72,6 +72,60 @@
     </form>
   </div>
 
-  <script src="js/login.obf.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+    }
+
+    // Set dark mode on load if saved
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark-mode");
+    }
+
+    // Restore remembered username
+    const savedUsername = localStorage.getItem("rememberedUsername");
+    if (savedUsername) {
+      document.getElementById("username").value = savedUsername;
+      document.getElementById("rememberMe").checked = true;
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const rememberMe = document.getElementById("rememberMe").checked;
+
+      const formData = { username, password };
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // ذخیره اطلاعات در localStorage
+          localStorage.setItem("username", username);
+          localStorage.setItem("name", data.name);
+
+          if (rememberMe) {
+            localStorage.setItem("rememberedUsername", username);
+          } else {
+            localStorage.removeItem("rememberedUsername");
+          }
+
+          window.location.href = "dashboard.html";
+        } else {
+          alert(data.message || "نام کاربری یا رمز عبور اشتباه است.");
+        }
+      } catch (err) {
+        alert("خطا در اتصال به سرور.");
+      }
+    });
+  </script>
 </body>
 </html>
